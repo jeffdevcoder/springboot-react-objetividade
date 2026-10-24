@@ -40,7 +40,7 @@ public class TaskService {
                 .filter(t -> t.getRecurrence() != Recurrence.ONCE || onceVisible(t, date, today))
                 .sorted(Comparator.comparing(Task::getTime, Comparator.nullsLast(Comparator.naturalOrder()))
                         .thenComparing(Task::getId))
-                .map(t -> toView(t, completions.existsByTaskAndDate(t, date)))
+                .map(t -> toView(t, date, completions.existsByTaskAndDate(t, date)))
                 .toList();
     }
 
@@ -102,7 +102,7 @@ public class TaskService {
         applyWeekdays(task, req);
         task.setTime(req.time());
         tasks.save(task);
-        return toView(task, false);
+        return toView(task, LocalDate.now(), false);
     }
 
     @Transactional
@@ -126,7 +126,7 @@ public class TaskService {
         task.setUrgent(req.urgent());
         applyWeekdays(task, req);
         task.setTime(req.time());
-        return toView(task, completions.existsByTaskAndDate(task, LocalDate.now()));
+        return toView(task, LocalDate.now(), completions.existsByTaskAndDate(task, LocalDate.now()));
     }
 
     @Transactional
@@ -161,11 +161,14 @@ public class TaskService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED));
     }
 
-    private TaskView toView(Task t, boolean done) {
+    private TaskView toView(Task t, LocalDate date, boolean done) {
         Set<DayOfWeek> days = EnumSet.noneOf(DayOfWeek.class);
         if (t.getRecurrence() == Recurrence.CUSTOM) days.addAll(t.getWeekdays());
+
+        LocalDate due = t.getRecurrence() == Recurrence.ONCE ? t.getStartDate() : date;
+
         return new TaskView(t.getId(), t.getTitle(), t.getDescription(), t.getRecurrence(),
-                t.getStartDate(), t.getEndDate(), t.isUrgent(), days, t.getTime(), done);
+                t.getStartDate(), t.getEndDate(), t.isUrgent(), days, t.getTime(), due, done);
     }
 
     private void checkDates(LocalDate start, LocalDate end) {

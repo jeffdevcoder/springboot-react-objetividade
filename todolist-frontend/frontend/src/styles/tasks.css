@@ -20,9 +20,10 @@
 
 .task-list {
     list-style: none;
-    margin: 0;
-    padding: 0 0.9rem 0 0;
+    margin: 14px 0 0;
+    padding: 4px 0.9rem 0 0;
     max-height: 50vh;
+    overflow-x: hidden;
     overflow-y: auto;
     overscroll-behavior: contain;
     scrollbar-width: thin;
@@ -75,8 +76,6 @@
 .task-item.is-done .task-body { opacity: 0.45; }
 .task-body { transition: opacity 0.3s ease; }
 .task-item.is-done .task-title { text-decoration: line-through; }
-
-.task-btn.is-danger { margin-right: auto; color: #c0392b; }
 
 .task-desc { opacity: 0.6; }
 .task-tag { font-size: 0.75rem; opacity: 0.55; }
@@ -163,7 +162,8 @@
 }
 
 .task-dates { display: flex; gap: 0.75rem; }
-.task-dates label { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.3rem; font-size: 0.8rem; }
+.task-dates { position: relative; }
+.task-dates > div { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
 .task-dates span { opacity: 0.6; }
 .task-dates input { width: 100%; min-width: 0; }
 .task-dates input:disabled { opacity: 0.4; }
@@ -179,6 +179,38 @@
 .task-flag { margin-right: 0.4rem; }
 
 .task-fade { animation: task-swap 0.22s ease both; }
+
+.task-btn.is-danger {
+    display: inline-flex;
+    align-items: center;
+    gap: 0;
+    margin-right: auto;
+    padding: 0.5rem 0.75rem;
+    border-radius: 999px;
+    background: #000000;
+    color: #ffffff;
+    white-space: nowrap;
+    transition: gap 0.25s ease, opacity 0.2s ease;
+}
+.task-btn.is-danger:hover { opacity: 0.85; }
+.task-btn.is-danger.is-confirming { gap: 0.5rem; }
+
+/* o texto abre e fecha suavemente */
+.task-confirm-text {
+    max-width: 0;
+    opacity: 0;
+    overflow: hidden;
+    transition: max-width 0.3s ease, opacity 0.2s ease;
+}
+.task-btn.is-danger.is-confirming .task-confirm-text {
+    max-width: 8rem;
+    opacity: 1;
+}
+
+/* em telas estreitas os botões podem quebrar de linha em vez de apertar */
+.task-actions { flex-wrap: wrap; row-gap: 0.5rem; }
+
+.task-trash { display: inline-flex; color: #ff5b5b; }
 
 .task-body,
 .task-text { min-width: 0; }
@@ -208,6 +240,20 @@
     color: var(--color-text);
     white-space: nowrap;
     line-height: 1.4;
+    max-width: 100%;
+    min-width: 0;
+    overflow: hidden;
+    background: transparent;
+    font: inherit;
+    cursor: pointer;
+}
+
+.date-chip .date-long,
+.date-chip .date-short {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .task-add { white-space: nowrap; }
@@ -302,6 +348,128 @@
     opacity: 0.75;
 }
 
+.task-late {
+    color: var(--color-error);
+    font-size: 0.75rem;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.date-chip:not(.is-today):hover { background: color-mix(in srgb, currentColor 8%, transparent); }
+.date-chip.is-today:hover { opacity: 0.9; }
+
+/* calendário */
+.day-nav { position: relative; }
+
+.calendar-backdrop { position: fixed; inset: 0; z-index: 29; }
+
+.calendar {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 50%;
+    z-index: 30;
+    width: min(290px, calc(100vw - 36px));
+    padding: 14px;
+    border: 1px solid var(--color-border);
+    border-radius: 16px;
+    background: var(--color-surface);
+    color: var(--color-text);
+    box-shadow: 0 14px 40px rgba(0, 0, 0, 0.14);
+    transform: translateX(-50%);
+    animation: calendar-in 0.2s ease both;
+}
+@keyframes calendar-in {
+    from { opacity: 0; transform: translate(-50%, -6px) scale(0.98); }
+    to   { opacity: 1; transform: translate(-50%, 0) scale(1); }
+}
+
+.calendar-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+.calendar-title { font-family: 'Manrope', sans-serif; font-size: 14px; font-weight: 700; }
+
+.calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+.calendar-weekdays span {
+    padding: 6px 0;
+    color: var(--color-muted);
+    font-size: 11px;
+    font-weight: 700;
+    text-align: center;
+}
+
+.calendar-day {
+    aspect-ratio: 1;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: 50%;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    font-size: 13px;
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease;
+}
+.calendar-day:hover { background: color-mix(in srgb, currentColor 10%, transparent); }
+.calendar-day.is-today { border-color: var(--color-text); }
+.calendar-day.is-selected {
+    background: var(--color-primary);
+    border-color: transparent;
+    color: var(--color-bg);
+}
+
+.calendar-today {
+    display: block;
+    margin: 10px auto 0;
+    padding: 6px 16px;
+    border: 1px solid var(--color-border);
+    border-radius: 999px;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    font-size: 12px;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+.calendar-today:hover { background: color-mix(in srgb, currentColor 8%, transparent); }
+
+/* campo de data que abre o calendário */
+.form-input.date-field {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    text-align: left;
+    cursor: pointer;
+}
+.form-input.date-field.is-empty { color: #8a8c84; }
+.date-field svg { flex-shrink: 0; opacity: 0.6; }
+
+/* calendário dentro do pop-up: alinhado à esquerda ou à direita da linha de datas */
+.calendar.is-left,
+.calendar.is-right {
+    width: min(290px, 100%);
+    transform: none;
+    animation-name: calendar-in-flat;
+}
+.calendar.is-left { left: 0; }
+.calendar.is-right { left: auto; right: 0; }
+
+@keyframes calendar-in-flat {
+    from { opacity: 0; transform: translateY(-6px) scale(0.98); }
+    to   { opacity: 1; transform: none; }
+}
+
+/* dias e botão bloqueados (antes da data mínima) */
+.calendar-day:disabled { opacity: 0.3; cursor: not-allowed; }
+.calendar-day:disabled:hover { background: transparent; }
+.calendar-today:disabled { opacity: 0.35; cursor: not-allowed; }
+.calendar-today:disabled:hover { background: transparent; }
+
 @media (max-width: 560px) {
     .day-nav {
         width: 100%;
@@ -324,3 +492,10 @@
         white-space: nowrap;
     }
 }
+
+@media (max-width: 360px) {
+    .day-nav { gap: 4px; }
+    .day-btn { width: 28px; height: 28px; }
+    .day-nav .date-chip { padding: 5px 6px; font-size: 10.5px; }
+}
+

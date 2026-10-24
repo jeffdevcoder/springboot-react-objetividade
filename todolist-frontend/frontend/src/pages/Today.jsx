@@ -7,6 +7,7 @@ import ThemeToggle from '../components/ThemeToggle'
 import TaskModal from '../components/TaskModal'
 import '../styles/auth.css'
 import '../styles/tasks.css'
+import Calendar from '../components/Calendar'
 
 const LABELS = {
     ONCE: 'Uma vez',
@@ -35,7 +36,6 @@ function addDays(iso, amount) {
 
 const capitalize = text => text.charAt(0).toUpperCase() + text.slice(1)
 
-// computador: "Terça-feira, 20 de outubro de 2026"
 function longLabel(iso) {
     return capitalize(
         fromIso(iso).toLocaleDateString('pt-BR', {
@@ -47,7 +47,6 @@ function longLabel(iso) {
     )
 }
 
-// tablet/celular: "Terça-feira, 20/10/2026"
 function shortLabel(iso) {
     const date = fromIso(iso)
     const weekday = capitalize(date.toLocaleDateString('pt-BR', { weekday: 'long' }))
@@ -59,6 +58,29 @@ function shortLabel(iso) {
     return `${weekday}, ${numeric}`
 }
 
+function overdueLabel(task, now) {
+    if (task.done || !task.dueDate) return null
+
+    const today = toIso(now)
+
+    if (task.dueDate < today) {
+        const days = Math.round((fromIso(today) - fromIso(task.dueDate)) / 86400000)
+        return `Atrasada há ${days} ${days === 1 ? 'dia' : 'dias'}`
+    }
+
+    if (task.dueDate === today && task.time) {
+        const [hour, minute] = task.time.split(':').map(Number)
+        const late = now.getHours() * 60 + now.getMinutes() - (hour * 60 + minute)
+        if (late > 0) {
+            if (late < 60) return `Atrasada há ${late} min`
+            const h = Math.floor(late / 60)
+            const m = late % 60
+            return m ? `Atrasada há ${h}h ${m}min` : `Atrasada há ${h}h`
+        }
+    }
+    return null
+}
+
 export default function Today() {
     const { user, logout } = useAuth()
     const navigate = useNavigate()
@@ -67,6 +89,9 @@ export default function Today() {
     const [modal, setModal] = useState({ open: false, task: null })
     const [error, setError] = useState('')
     const [notice, setNotice] = useState('')
+    const [now, setNow] = useState(() => new Date())
+    const [pickerOpen, setPickerOpen] = useState(false)
+    const closePicker = useCallback(() => setPickerOpen(false), [])
 
     const today = toIso(new Date())
     const isToday = selectedDate === today
@@ -75,12 +100,22 @@ export default function Today() {
     const closeModal = useCallback(() => setModal(m => ({ ...m, open: false })), [])
 
     useEffect(() => {
+        const id = setInterval(() => setNow(new Date()), 60000)
+        return () => clearInterval(id)
+    }, [])
+
+    useEffect(() => {
         let ignore = false
         api(`/tasks/day?date=${selectedDate}`)
             .then(list => { if (!ignore) setTasks(list) })
             .catch(err => { if (!ignore) setError(err.message) })
         return () => { ignore = true }
     }, [selectedDate])
+
+    function pickDate(iso) {
+        goTo(iso)
+        setPickerOpen(false)
+    }
 
     function goTo(iso) {
         setError('')
@@ -176,10 +211,26 @@ export default function Today() {
                                     </svg>
                                 </button>
 
-                                <span className={`date-chip ${isToday ? 'is-today' : ''}`}>
+                                <button
+                                    type="button"
+                                    className={`date-chip ${isToday ? 'is-today' : ''}`}
+                                    onClick={() => setPickerOpen(open => !open)}
+                                    aria-haspopup="dialog"
+                                    aria-expanded={pickerOpen}
+                                    title="Escolher uma data"
+                                >
                                     <span className="date-long">{longLabel(selectedDate)}</span>
                                     <span className="date-short">{shortLabel(selectedDate)}</span>
-                                </span>
+                                </button>
+
+                                {pickerOpen && (
+                                    <Calendar
+                                        value={selectedDate}
+                                        today={today}
+                                        onSelect={pickDate}
+                                        onClose={closePicker}
+                                    />
+                                )}
 
                                 <button
                                     type="button"
@@ -221,6 +272,9 @@ export default function Today() {
                                                 )}
                                                 {task.title}
                                             </span>
+                                            {overdueLabel(task, now) && (
+                                                <small className="task-late">{overdueLabel(task, now)}</small>
+                                            )}
                                             {task.description && (
                                                 <small className="task-desc" title={task.description}>
                                                     {task.description}

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { api } from '../api'
+import DateField from './DateField'
 
 const OPTIONS = [
     ['ONCE', 'Uma vez'],
@@ -153,30 +154,28 @@ export default function TaskModal({ open, task, defaultDate, onClose, onSaved, o
                 />
 
                 <div className="task-dates">
-                    <label>
+                    <div>
                         <span className="form-label">{once ? 'Data' : 'Início'}</span>
-                        <input
-                            className="form-input"
-                            type="date"
+                        <DateField
                             value={startDate}
-                            onChange={e => setStartDate(e.target.value)}
-                            required
+                            onChange={iso => {
+                                setStartDate(iso)
+                                if (endDate && endDate < iso) setEndDate(iso)
+                            }}
                         />
-                    </label>
+                    </div>
 
                     {!once && (
-                        <label className="task-fade">
+                        <div className="task-fade">
                             <span className="form-label">Fim</span>
-                            <input
-                                className="form-input"
-                                type="date"
+                            <DateField
                                 value={endDate}
                                 min={startDate}
                                 disabled={noEnd}
-                                onChange={e => setEndDate(e.target.value)}
-                                required={!noEnd}
+                                align="right"
+                                onChange={setEndDate}
                             />
-                        </label>
+                        </div>
                     )}
                 </div>
 
@@ -262,10 +261,19 @@ export default function TaskModal({ open, task, defaultDate, onClose, onSaved, o
                             type="button"
                             className={`task-btn is-danger ${confirmDelete ? 'is-confirming' : ''}`}
                             onClick={handleDelete}
+                            aria-label={confirmDelete ? 'Confirmar exclusão' : 'Excluir tarefa'}
+                            title="Excluir tarefa"
                         >
-                        <span key={confirmDelete ? 'confirm' : 'idle'} className="task-swap">
-                            {confirmDelete ? 'Tem certeza?' : 'Excluir'}
-                        </span>
+    <span className="task-trash" aria-hidden="true">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 6h18" />
+            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+            <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+            <path d="M10 11v6M14 11v6" />
+        </svg>
+    </span>
+                            <span className="task-confirm-text">Tem certeza?</span>
                         </button>
                     )}
                     <button type="button" className="task-btn" onClick={onClose}>Cancelar</button>
