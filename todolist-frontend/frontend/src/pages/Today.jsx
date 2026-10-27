@@ -8,6 +8,8 @@ import TaskModal from '../components/TaskModal'
 import '../styles/auth.css'
 import '../styles/tasks.css'
 import Calendar from '../components/Calendar'
+import TagModal from '../components/TagModal'
+import { tagHex } from '../tagColors'
 
 const LABELS = {
     ONCE: 'Uma vez',
@@ -20,7 +22,6 @@ const LABELS = {
     CUSTOM: 'Personalizado',
 }
 
-// datas como texto AAAA-MM-DD, no fuso local
 const toIso = date => date.toLocaleDateString('en-CA')
 
 function fromIso(iso) {
@@ -92,6 +93,8 @@ export default function Today() {
     const [now, setNow] = useState(() => new Date())
     const [pickerOpen, setPickerOpen] = useState(false)
     const closePicker = useCallback(() => setPickerOpen(false), [])
+    const [tagModal, setTagModal] = useState({ open: false, task: null })
+    const closeTagModal = useCallback(() => setTagModal(m => ({ ...m, open: false })), [])
 
     const today = toIso(new Date())
     const isToday = selectedDate === today
@@ -121,6 +124,10 @@ export default function Today() {
         setError('')
         setNotice('')
         setSelectedDate(iso)
+    }
+
+    function handleTagAssigned(taskId, tag) {
+        setTasks(list => list.map(t => (t.id === taskId ? { ...t, tag } : t)))
     }
 
     async function toggle(task) {
@@ -166,7 +173,7 @@ export default function Today() {
             <header className="dashboard-header">
                 <a href="/today" className="brand">
                     <Logo />
-                    <span>a fazer.</span>
+                    <span>Objetividade</span>
                 </a>
 
                 <div className="user-area">
@@ -263,30 +270,61 @@ export default function Today() {
                         <ul className="task-list">
                             {tasks.map(task => (
                                 <li key={task.id} className={`task-item ${task.done ? 'is-done' : ''}`}>
-                                    <input className="task-check" type="checkbox" checked={task.done} disabled={isFuture} onChange={() => toggle(task)} aria-label={`Marcar "${task.title}" como feita`} />
-                                    <button className="task-body" type="button" onClick={() => setModal({ open: true, task })}>
-                                        <span className="task-text">
-                                            <span className="task-title">
-                                                {task.urgent && (
-                                                    <span className="task-flag" role="img" aria-label="Urgente">🚨</span>
-                                                )}
-                                                {task.title}
-                                            </span>
-                                            {overdueLabel(task, now) && (
-                                                <small className="task-late">{overdueLabel(task, now)}</small>
-                                            )}
-                                            {task.description && (
-                                                <small className="task-desc" title={task.description}>
-                                                    {task.description}
-                                                </small>
-                                            )}
-                                        </span>
+                                    <input
+                                        className="task-check"
+                                        type="checkbox"
+                                        checked={task.done}
+                                        disabled={isFuture}
+                                        onChange={() => toggle(task)}
+                                        aria-label={`Marcar "${task.title}" como feita`}
+                                    />
 
-                                            <span className="task-meta">
-                                            {task.time && <span className="task-clock">{task.time.slice(0, 5)}</span>}
-                                                <span className="task-tag">{LABELS[task.recurrence]}</span>
-                                        </span>
+                                    <button
+                                        className="task-body"
+                                        type="button"
+                                        onClick={() => setModal({ open: true, task })}
+                                    >
+        <span className="task-text">
+            <span className="task-title">
+                {task.urgent && (
+                    <span className="task-flag" role="img" aria-label="Urgente">🚨</span>
+                )}
+                {task.title}
+            </span>
+            {overdueLabel(task, now) && (
+                <small className="task-late">{overdueLabel(task, now)}</small>
+            )}
+            {task.description && (
+                <small className="task-desc" title={task.description}>
+                    {task.description}
+                </small>
+            )}
+        </span>
                                     </button>
+
+                                    <div className="task-meta" onClick={() => setModal({ open: true, task })}>
+                                        {task.time && <span className="task-clock">{task.time.slice(0, 5)}</span>}
+                                        <span className="task-tag">{LABELS[task.recurrence]}</span>
+
+                                        <button
+                                            type="button"
+                                            className="tag-btn"
+                                            title="Escolher tag"
+                                            aria-label="Escolher tag"
+                                            onClick={e => {
+                                                e.stopPropagation()
+                                                setTagModal({ open: true, task })
+                                            }}
+                                        >
+    <span className={`tag-text ${task.tag ? '' : 'is-placeholder'}`}>
+        {task.tag ? task.tag.name : 'Tag'}
+    </span>
+                                            <span
+                                                className={`tag-dot ${task.tag ? '' : 'is-default'}`}
+                                                style={task.tag ? { background: tagHex(task.tag.color) } : undefined}
+                                            />
+                                        </button>
+                                    </div>
                                 </li>
                             ))}
                         </ul>
@@ -317,6 +355,13 @@ export default function Today() {
                 onClose={closeModal}
                 onSaved={handleSaved}
                 onDeleted={handleDeleted}
+            />
+
+            <TagModal
+                open={tagModal.open}
+                task={tagModal.task}
+                onClose={closeTagModal}
+                onAssigned={handleTagAssigned}
             />
         </main>
     )

@@ -57,9 +57,9 @@ export default function Register() {
         <main className="auth-page">
             <ThemeToggle className="is-floating" />
 
-            <Link to="/login" className="brand" aria-label="a fazer - início">
+            <Link to="/login" className="brand" aria-label="objetividade - início">
                 <Logo />
-                <span>A fazer.</span>
+                <span>Objetividade</span>
             </Link>
 
             <section className="auth-card">

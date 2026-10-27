@@ -337,8 +337,12 @@
     display: flex;
     flex-direction: column;
     align-items: flex-end;
+    justify-content: center;
+    align-self: stretch;
     gap: 2px;
     flex-shrink: 0;
+    padding: 0.85rem 0;
+    cursor: pointer;
 }
 
 .task-clock {
@@ -380,6 +384,7 @@
     transform: translateX(-50%);
     animation: calendar-in 0.2s ease both;
 }
+
 @keyframes calendar-in {
     from { opacity: 0; transform: translate(-50%, -6px) scale(0.98); }
     to   { opacity: 1; transform: translate(-50%, 0) scale(1); }
@@ -469,6 +474,110 @@
 .calendar-day:disabled:hover { background: transparent; }
 .calendar-today:disabled { opacity: 0.35; cursor: not-allowed; }
 .calendar-today:disabled:hover { background: transparent; }
+
+.task-item.is-done .task-meta { opacity: 0.45; }
+
+.tag-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    max-width: 12rem;
+    padding: 3px 10px 3px 12px;
+    border: 1px solid var(--color-border);
+    border-radius: 999px;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s ease, border-color 0.2s ease;
+}
+.tag-btn:hover {
+    background: color-mix(in srgb, currentColor 8%, transparent);
+    border-color: color-mix(in srgb, currentColor 30%, transparent);
+}
+
+.tag-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.tag-text.is-placeholder { opacity: 0.55; }
+
+.tag-dot {
+    flex-shrink: 0;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    transition: transform 0.15s ease;
+}
+
+.tag-swatches {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    justify-items: center;
+    gap: 0.9rem 0.5rem;
+    padding: 6px 4px;
+}
+
+.tag-swatch {
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.tag-swatch.is-default { background: #000000; }
+.tag-swatch:hover { transform: scale(1.1); }
+
+.tag-swatch.is-selected {
+    box-shadow: 0 0 0 2px var(--color-surface), 0 0 0 4px var(--color-text);
+}
+
+/* lista de tags */
+.task-modal.tag-modal { width: min(92vw, 340px); }
+.tag-form { display: flex; flex-direction: column; gap: 0.75rem; }
+
+.tag-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    max-height: 240px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+}
+
+.tag-option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 10px 8px;
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    font-size: 14px;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+.tag-option:hover { background: color-mix(in srgb, currentColor 8%, transparent); }
+.tag-option.is-selected { background: color-mix(in srgb, currentColor 12%, transparent); font-weight: 600; }
+.tag-option-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+@media (max-width: 560px) {
+    .tag-btn { max-width: 8rem; }
+}
+
+@media (max-width: 560px) {
+    .tag-btn { max-width: 6.5rem; }
+}
 
 @media (max-width: 560px) {
     .day-nav {

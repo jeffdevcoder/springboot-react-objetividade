@@ -16,12 +16,13 @@ import java.util.Set;
 
 @Service
 public class TaskService {
-
+    private final TagRepository tagRepo;
     private final TaskRepository tasks;
     private final TaskCompletionRepository completions;
     private final UserRepository users;
 
-    public TaskService(TaskRepository tasks, TaskCompletionRepository completions, UserRepository users) {
+    public TaskService(TagRepository tagRepo, TaskRepository tasks, TaskCompletionRepository completions, UserRepository users) {
+        this.tagRepo = tagRepo;
         this.tasks = tasks;
         this.completions = completions;
         this.users = users;
@@ -167,8 +168,23 @@ public class TaskService {
 
         LocalDate due = t.getRecurrence() == Recurrence.ONCE ? t.getStartDate() : date;
 
+        TagView tag = t.getTag() == null ? null : TagView.of(t.getTag());
+
         return new TaskView(t.getId(), t.getTitle(), t.getDescription(), t.getRecurrence(),
-                t.getStartDate(), t.getEndDate(), t.isUrgent(), days, t.getTime(), due, done);
+                t.getStartDate(), t.getEndDate(), t.isUrgent(), days, t.getTime(), due,
+                tag, done);
+    }
+
+    @Transactional
+    public void assignTag(String email, Long taskId, Long tagId) {
+        Task task = find(email, taskId);
+        if (tagId == null) {
+            task.setTag(null);
+            return;
+        }
+        Tag tag = tagRepo.findByIdAndUser(tagId, user(email))
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        task.setTag(tag);
     }
 
     private void checkDates(LocalDate start, LocalDate end) {

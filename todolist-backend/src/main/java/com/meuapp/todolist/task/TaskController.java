@@ -48,6 +48,14 @@ public class TaskController {
         return ResponseEntity.noContent().build();
     }
 
+    @PatchMapping("/{id}/tag")
+    public ResponseEntity<Void> assignTag(@PathVariable Long id,
+                                          @RequestBody AssignTagRequest body,
+                                          Principal principal) {
+        service.assignTag(principal.getName(), id, body.tagId());
+        return ResponseEntity.noContent().build();
+    }
+
     @PutMapping("/{id}")
     public TaskView update(@PathVariable Long id,
                            @Valid @RequestBody CreateTaskRequest body,

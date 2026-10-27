@@ -64,3 +64,9 @@ Caused by: org.h2.jdbc.JdbcSQLNonTransientException: Error while creating file "
 	at org.h2.message.DbException.getJdbcSQLException(DbException.java:566)
 	at org.h2.message.DbException.getJdbcSQLException(DbException.java:489)
 	... 60 more
+2026-10-27 17:21:41.480541-03:00 jdbc[3]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Syntax error in SQL statement "alter table if exists tasks alter column tag_color set data type varchar(20) [*]default 'DEFAULT'"; SQL statement:
+alter table if exists tasks alter column tag_color set data type varchar(20) default 'DEFAULT' [42000-240]
+2026-10-27 17:25:06.294989-03:00 jdbc[3]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Syntax error in SQL statement "alter table if exists tasks alter column tag_color set data type varchar(20) [*]default 'DEFAULT'"; SQL statement:
+alter table if exists tasks alter column tag_color set data type varchar(20) default 'DEFAULT' [42000-240]

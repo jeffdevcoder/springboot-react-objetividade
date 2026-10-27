@@ -7,4 +7,5 @@ import java.util.Set;
 
 public record TaskView(Long id, String title, String description, Recurrence recurrence,
                        LocalDate startDate, LocalDate endDate, boolean urgent,
-                       Set<DayOfWeek> weekdays, LocalTime time, LocalDate dueDate, boolean done) {}
+                       Set<DayOfWeek> weekdays, LocalTime time, LocalDate dueDate,
+                       TagView tag, boolean done) {}

@@ -81,6 +81,7 @@ html[data-theme='dark'] {
     & .task-modal input[type='date'] { color-scheme: light; }
     & .task-btn.is-danger { background: #ffffff; color: #000000; }
     & .task-trash { color: #d92d2d; }
+    & .tag-dot.is-default { background: #ffffff; }
 }
 
 .user-area { min-width: 0; }

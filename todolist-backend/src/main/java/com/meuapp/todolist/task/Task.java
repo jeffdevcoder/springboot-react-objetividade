@@ -2,6 +2,7 @@ package com.meuapp.todolist.task;
 
 import com.meuapp.todolist.user.User;
 import jakarta.persistence.*;
+import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
@@ -49,6 +50,10 @@ public class Task {
     @Column(nullable = false, columnDefinition = "boolean default false")
     private boolean urgent = false;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "tag_id")
+    private Tag tag;
+
     @ElementCollection
     @CollectionTable(name = "task_weekdays", joinColumns = @JoinColumn(name = "task_id"))
     @Enumerated(EnumType.STRING)
@@ -93,5 +98,7 @@ public class Task {
     public Set<DayOfWeek> getWeekdays() { return weekdays; }
     public LocalTime getTime() { return time; }
     public void setTime(LocalTime time) { this.time = time; }
+    public Tag getTag() { return tag; }
+    public void setTag(Tag tag) { this.tag = tag; }
 
 }
