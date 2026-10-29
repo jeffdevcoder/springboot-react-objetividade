@@ -65,6 +65,8 @@ function overdueLabel(task, now) {
     const today = toIso(now)
 
     if (task.dueDate < today) {
+        if (task.recurrence !== 'ONCE') return null
+
         const days = Math.round((fromIso(today) - fromIso(task.dueDate)) / 86400000)
         return `Atrasada há ${days} ${days === 1 ? 'dia' : 'dias'}`
     }
