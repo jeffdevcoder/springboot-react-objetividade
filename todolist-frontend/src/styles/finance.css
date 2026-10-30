@@ -1,0 +1,297 @@
+/* seletor Tarefas | Finanças */
+.section-tabs {
+    display: inline-flex;
+    gap: 4px;
+    margin-bottom: 20px;
+    padding: 4px;
+    border: 1px solid var(--color-border);
+    border-radius: 999px;
+    background: var(--color-surface);
+}
+.section-tab {
+    padding: 8px 18px;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--color-muted);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s ease, color 0.2s ease;
+}
+.section-tab:hover { color: var(--color-text); }
+.section-tab.is-active { background: var(--color-primary); color: var(--color-bg); }
+
+/* cores de texto dos valores (mais escuras no claro, mais claras no noturno) */
+.dashboard {
+    --fin-income-text: #059669;
+    --fin-expense-text: #dc2626;
+}
+html[data-theme='dark'] .dashboard {
+    --fin-income-text: #34d399;
+    --fin-expense-text: #f87171;
+}
+
+/* gráfico de anel */
+.fin-overview {
+    display: flex;
+    align-items: center;
+    gap: 32px;
+    margin: 22px 0 8px;
+}
+.donut-wrap { position: relative; flex-shrink: 0; width: 200px; height: 200px; }
+.donut { display: block; width: 100%; height: 100%; }
+.donut-track { fill: none; stroke: var(--color-border); }
+.donut-seg {
+    fill: none;
+    transition: stroke-dasharray 0.7s cubic-bezier(0.4, 0, 0.2, 1),
+    stroke-dashoffset 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.donut-center {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    padding: 0 36px;
+    text-align: center;
+}
+.donut-label {
+    color: var(--color-muted);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+}
+.donut-value {
+    font-family: 'Manrope', sans-serif;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    font-variant-numeric: tabular-nums;
+}
+.donut-value.is-negative,
+.fin-stat-value.is-negative { color: var(--fin-expense-text); }
+.donut-hint { color: var(--color-muted); font-size: 12px; }
+
+/* resumo ao lado do gráfico */
+.fin-stats { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 14px; }
+.fin-stat {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--color-border);
+}
+.fin-stat:last-child { padding-bottom: 0; border-bottom: 0; }
+.fin-stat-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--color-muted);
+    font-size: 13px;
+}
+.fin-stat-value {
+    font-family: 'Manrope', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+.fin-dot { flex-shrink: 0; width: 10px; height: 10px; border-radius: 50%; }
+
+/* lançamentos */
+.fin-list-title {
+    margin: 26px 0 4px;
+    color: var(--color-muted);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+}
+.fin-list {
+    list-style: none;
+    margin: 0;
+    padding: 0 0.6rem 0 0;
+    max-height: 340px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+}
+.fin-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 13px 0;
+    border-bottom: 1px solid color-mix(in srgb, currentColor 10%, transparent);
+}
+.fin-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.fin-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; }
+.fin-sub { color: var(--color-muted); font-size: 12px; }
+.fin-amount {
+    font-size: 14px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+.fin-amount.is-income { color: var(--fin-income-text); }
+.fin-amount.is-expense { color: var(--fin-expense-text); }
+.fin-empty { margin: 18px 0 8px; color: var(--color-muted); font-size: 13px; text-align: center; }
+
+.fin-del {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 28px;
+    height: 28px;
+    padding: 0 8px;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--color-muted);
+    font: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s ease, color 0.2s ease;
+}
+.fin-del:hover { background: color-mix(in srgb, currentColor 10%, transparent); color: var(--color-text); }
+.fin-del.is-confirming { background: #000000; color: #ffffff; }
+html[data-theme='dark'] .fin-del.is-confirming { background: #ffffff; color: #000000; }
+
+/* campos do pop-up */
+.fin-field { display: flex; flex-direction: column; gap: 8px; }
+
+/* emoji da linha do lançamento */
+.fin-badge {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 11px;
+    font-size: 18px;
+    line-height: 1;
+}
+
+/* categorias no pop-up */
+.cat-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.cat-chip {
+    --cat: var(--color-text);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px 6px 10px;
+    border: 1px solid color-mix(in srgb, var(--cat) 45%, transparent);
+    border-radius: 999px;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    font-size: 13px;
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease;
+}
+.cat-chip:hover { background: color-mix(in srgb, var(--cat) 12%, transparent); }
+.cat-chip.is-selected {
+    background: color-mix(in srgb, var(--cat) 22%, transparent);
+    border-color: var(--cat);
+    font-weight: 600;
+}
+.cat-chip.is-add {
+    border-style: dashed;
+    border-color: var(--color-border);
+    color: var(--color-muted);
+}
+.cat-emoji { font-size: 15px; line-height: 1; }
+.cat-name { max-width: 9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.cat-new {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 4px;
+    padding: 12px;
+    border: 1px solid var(--color-border);
+    border-radius: 14px;
+}
+.cat-new-row { display: flex; align-items: center; gap: 8px; }
+.cat-new-row .form-input { flex: 1; min-width: 0; }
+.cat-emoji-anchor { position: relative; flex-shrink: 0; }
+.form-input.cat-emoji-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    padding: 0;
+    font-size: 22px;
+    cursor: pointer;
+}
+.cat-new-actions { display: flex; justify-content: flex-end; }
+
+/* menu de emojis */
+.emoji-pop {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    z-index: 30;
+    width: min(320px, 82vw);
+    padding: 12px;
+    border: 1px solid var(--color-border);
+    border-radius: 16px;
+    background: var(--color-surface);
+    color: var(--color-text);
+    box-shadow: 0 14px 40px rgba(0, 0, 0, 0.14);
+    animation: calendar-in-flat 0.2s ease both;
+}
+.emoji-tabs {
+    display: flex;
+    gap: 2px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--color-border);
+}
+.emoji-tab {
+    flex: 1;
+    height: 32px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    font-size: 16px;
+    opacity: 0.5;
+    cursor: pointer;
+    transition: opacity 0.15s ease, background 0.15s ease;
+}
+.emoji-tab:hover { opacity: 1; }
+.emoji-tab.is-active { opacity: 1; background: color-mix(in srgb, currentColor 10%, transparent); }
+.emoji-group-name {
+    margin: 10px 2px 6px;
+    color: var(--color-muted);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+}
+.emoji-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 2px; }
+.emoji-item {
+    aspect-ratio: 1;
+    padding: 0;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+    transition: background 0.15s ease, transform 0.1s ease;
+}
+.emoji-item:hover { background: color-mix(in srgb, currentColor 10%, transparent); transform: scale(1.12); }
+.emoji-item.is-selected { background: color-mix(in srgb, currentColor 16%, transparent); }
+
+@media (max-width: 560px) {
+    .fin-overview { flex-direction: column; align-items: stretch; gap: 22px; }
+    .donut-wrap { align-self: center; width: 180px; height: 180px; }
+    .donut-center { padding: 0 30px; }
+}

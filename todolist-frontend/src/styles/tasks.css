@@ -571,6 +571,9 @@
 .tag-option.is-selected { background: color-mix(in srgb, currentColor 12%, transparent); font-weight: 600; }
 .tag-option-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
+.task-item.is-late .task-title { color: var(--color-error); }
+
+
 @media (max-width: 560px) {
     .tag-btn { max-width: 8rem; }
 }

@@ -10,6 +10,7 @@ import '../styles/tasks.css'
 import Calendar from '../components/Calendar'
 import TagModal from '../components/TagModal'
 import { tagHex } from '../tagColors'
+import FinancePanel from '../components/finance/FinancePanel.jsx'
 
 const LABELS = {
     ONCE: 'Uma vez',
@@ -59,28 +60,35 @@ function shortLabel(iso) {
     return `${weekday}, ${numeric}`
 }
 
-function overdueLabel(task, now) {
-    if (task.done || !task.dueDate) return null
+function lateByTime(task, now) {
+    const [hour, minute] = task.time.split(':').map(Number)
+    const late = now.getHours() * 60 + now.getMinutes() - (hour * 60 + minute)
+    if (late <= 0) return null
+    if (late < 60) return `Atrasada há ${late} min`
+
+    const h = Math.floor(late / 60)
+    const m = late % 60
+    return m ? `Atrasada há ${h}h ${m}min` : `Atrasada há ${h}h`
+}
+
+function overdueLabel(task, now, viewedDate) {
+    if (task.done) return null
 
     const today = toIso(now)
 
-    if (task.dueDate < today) {
-        if (task.recurrence !== 'ONCE') return null
+    // tarefas que se repetem: só ficam atrasadas no próprio dia
+    if (task.recurrence !== 'ONCE') {
+        if (viewedDate < today) return 'Tarefa não feita'
+        if (viewedDate === today && task.time) return lateByTime(task, now)
+        return null
+    }
 
+    // "uma vez": continua atrasada até ser feita
+    if (task.dueDate < today) {
         const days = Math.round((fromIso(today) - fromIso(task.dueDate)) / 86400000)
         return `Atrasada há ${days} ${days === 1 ? 'dia' : 'dias'}`
     }
-
-    if (task.dueDate === today && task.time) {
-        const [hour, minute] = task.time.split(':').map(Number)
-        const late = now.getHours() * 60 + now.getMinutes() - (hour * 60 + minute)
-        if (late > 0) {
-            if (late < 60) return `Atrasada há ${late} min`
-            const h = Math.floor(late / 60)
-            const m = late % 60
-            return m ? `Atrasada há ${h}h ${m}min` : `Atrasada há ${h}h`
-        }
-    }
+    if (task.dueDate === today && task.time) return lateByTime(task, now)
     return null
 }
 
@@ -101,8 +109,16 @@ export default function Today() {
     const today = toIso(new Date())
     const isToday = selectedDate === today
     const isFuture = selectedDate > today
+    const [section, setSection] = useState(() =>
+        localStorage.getItem('section') === 'finance' ? 'finance' : 'tasks'
+    )
 
     const closeModal = useCallback(() => setModal(m => ({ ...m, open: false })), [])
+
+    function chooseSection(next) {
+        setSection(next)
+        try { localStorage.setItem('section', next) } catch { /* sem armazenamento */ }
+    }
 
     useEffect(() => {
         const id = setInterval(() => setNow(new Date()), 60000)
@@ -181,8 +197,19 @@ export default function Today() {
                 <div className="user-area">
                     <span className="user-email">{user?.name}</span>
                     <ThemeToggle />
-                    <button className="logout-button" type="button" onClick={handleLogout}>
-                        Sair ↗
+                    <button
+                        className="logout-icon"
+                        type="button"
+                        onClick={handleLogout}
+                        aria-label="Sair"
+                        title="Sair"
+                    >
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                            <path d="M16 17l5-5-5-5" />
+                            <path d="M21 12H9" />
+                        </svg>
                     </button>
                 </div>
             </header>
@@ -192,15 +219,40 @@ export default function Today() {
                     <p className="dashboard-date">Seu espaço pessoal</p>
 
                     <h1 className="dashboard-title">
-                        {isToday ? 'Checklist de hoje.' : 'Checklist do dia.'}
+                        {section === 'finance'
+                            ? 'Suas finanças.'
+                            : isToday ? 'Checklist de hoje.' : 'Checklist do dia.'}
                     </h1>
 
                     <p className="dashboard-subtitle">
-                        Um passo de cada vez. Organize o que importa
-                        e mantenha o foco no seu dia.
+                        {section === 'finance'
+                            ? 'Receitas, gastos e saldo do mês, num só lugar.'
+                            : 'Um passo de cada vez. Organize o que importa e mantenha o foco no seu dia.'}
                     </p>
                 </div>
 
+                <div className="section-tabs" role="tablist" aria-label="Seção">
+                    <button
+                        type="button"
+                        role="tab"
+                        aria-selected={section === 'tasks'}
+                        className={`section-tab ${section === 'tasks' ? 'is-active' : ''}`}
+                        onClick={() => chooseSection('tasks')}
+                    >
+                        Tarefas
+                    </button>
+                    <button
+                        type="button"
+                        role="tab"
+                        aria-selected={section === 'finance'}
+                        className={`section-tab ${section === 'finance' ? 'is-active' : ''}`}
+                        onClick={() => chooseSection('finance')}
+                    >
+                        Finanças
+                    </button>
+                </div>
+
+                {section === 'tasks' ? (
                 <section className="dashboard-panel">
                     <div className="panel-header">
                         <div>
@@ -271,7 +323,10 @@ export default function Today() {
                     {tasks.length > 0 ? (
                         <ul className="task-list">
                             {tasks.map(task => (
-                                <li key={task.id} className={`task-item ${task.done ? 'is-done' : ''}`}>
+                                <li
+                                    key={task.id}
+                                    className={`task-item ${task.done ? 'is-done' : ''} ${overdueLabel(task, now, selectedDate) ? 'is-late' : ''}`}
+                                >
                                     <input
                                         className="task-check"
                                         type="checkbox"
@@ -293,8 +348,8 @@ export default function Today() {
                 )}
                 {task.title}
             </span>
-            {overdueLabel(task, now) && (
-                <small className="task-late">{overdueLabel(task, now)}</small>
+            {overdueLabel(task, now, selectedDate) && (
+                <small className="task-late">{overdueLabel(task, now, selectedDate)}</small>
             )}
             {task.description && (
                 <small className="task-desc" title={task.description}>
@@ -344,7 +399,9 @@ export default function Today() {
                         </div>
                     )}
                 </section>
-
+                ) : (
+                    <FinancePanel />
+                )}
                 <p className="dashboard-footer">
                     Feito para manter as coisas simples.
                 </p>
