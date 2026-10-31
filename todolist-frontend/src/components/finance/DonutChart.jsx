@@ -61,7 +61,7 @@ export default function DonutChart({ segments, centerLabel, centerValue, centerH
                 <span className="donut-label">{centerLabel}</span>
                 <strong
                     className={`donut-value ${negative ? 'is-negative' : ''}`}
-                    style={{ fontSize: centerValue.length > 12 ? 16 : 20 }}
+                    style={{ fontSize: centerValue.length <= 11 ? 20 : centerValue.length <= 13 ? 17 : 14 }}
                 >
                     {centerValue}
                 </strong>

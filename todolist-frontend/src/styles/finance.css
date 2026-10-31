@@ -231,7 +231,25 @@ html[data-theme='dark'] .fin-del.is-confirming { background: #ffffff; color: #00
     font-size: 22px;
     cursor: pointer;
 }
-.cat-new-actions { display: flex; justify-content: flex-end; }
+.cat-new-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.5rem; }
+
+.cat-item { display: inline-flex; align-items: center; gap: 2px; }
+.cat-edit {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--color-muted);
+    opacity: 0.6;
+    cursor: pointer;
+    transition: opacity 0.15s ease, background 0.15s ease;
+}
+.cat-edit:hover { opacity: 1; background: color-mix(in srgb, currentColor 10%, transparent); }
 
 /* menu de emojis */
 .emoji-pop {
@@ -289,6 +307,22 @@ html[data-theme='dark'] .fin-del.is-confirming { background: #ffffff; color: #00
 }
 .emoji-item:hover { background: color-mix(in srgb, currentColor 10%, transparent); transform: scale(1.12); }
 .emoji-item.is-selected { background: color-mix(in srgb, currentColor 16%, transparent); }
+
+.donut-value,
+.donut-hint,
+.donut-label {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.fin-stat-value {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
 
 @media (max-width: 560px) {
     .fin-overview { flex-direction: column; align-items: stretch; gap: 22px; }

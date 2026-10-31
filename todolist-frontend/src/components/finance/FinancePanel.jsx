@@ -9,6 +9,7 @@ import {
     shiftMonth,
     summarize,
     toMonthKey,
+    formatCenter
 } from '../../finance'
 import DonutChart from './DonutChart'
 import TransactionModal from './TransactionModal'
@@ -51,12 +52,10 @@ export default function FinancePanel() {
     function handleSaved(created) {
         const key = created.date.slice(0, 7)
         if (key !== month) {
-            setMonth(key) // vai para o mês do lançamento
+            setMonth(key)
             return
         }
-        api(`/finance/transactions?month=${month}`)
-            .then(setItems)
-            .catch(err => setError(err.message))
+        refresh()
     }
 
     async function handleDelete(id) {
@@ -73,12 +72,22 @@ export default function FinancePanel() {
         }
     }
 
+    function refresh() {
+        api(`/finance/transactions?month=${month}`)
+            .then(setItems)
+            .catch(err => setError(err.message))
+    }
+
     const totals = summarize(items)
-    const segments = buildSegments(totals, items)
+    const segments = buildSegments(items)
 
     let hint = ''
-    if (totals.income > 0) hint = `${Math.round((totals.expense / totals.income) * 100)}% gasto`
-    else if (totals.expense > 0) hint = 'sem receitas'
+    if (totals.income > 0) {
+        const pct = Math.round((totals.expense / totals.income) * 100)
+        hint = pct > 999 ? '999%+ gasto' : `${pct}% gasto`
+    } else if (totals.expense > 0) {
+        hint = 'sem receitas'
+    }
 
     return (
         <section className="dashboard-panel">
@@ -133,7 +142,7 @@ export default function FinancePanel() {
                 <DonutChart
                     segments={segments}
                     centerLabel="Saldo"
-                    centerValue={formatMoney(totals.balance)}
+                    centerValue={formatCenter(totals.balance)}
                     centerHint={hint}
                     negative={totals.balance < 0}
                 />
@@ -178,9 +187,11 @@ export default function FinancePanel() {
                             </span>
 
                             <div className="fin-main">
-                                <span className="fin-title">{t.description}</span>
+                                <span className="fin-title">
+                                    {t.description || (t.category ? t.category.name : t.type === 'INCOME' ? 'Receita' : 'Gasto')}
+                                </span>
                                 <span className="fin-sub">
-                                    {t.category ? `${t.category.name} · ` : ''}{formatDay(t.date)}
+                                    {t.category && t.description ? `${t.category.name} · ` : ''}{formatDay(t.date)}
                                 </span>
                             </div>
 
@@ -217,6 +228,7 @@ export default function FinancePanel() {
                 open={modalOpen}
                 onClose={() => setModalOpen(false)}
                 onSaved={handleSaved}
+                onCategoriesChanged={refresh}
             />
         </section>
     )

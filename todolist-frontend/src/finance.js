@@ -1,27 +1,27 @@
-export const INCOME_COLOR = '#10B981'  // verde (receitas)
-export const EXPENSE_COLOR = '#EF4444' // coral (gastos, por enquanto uma cor só)
+export const INCOME_COLOR = '#4ADE80'
+export const EXPENSE_COLOR = '#EF4444'
 
-export const WARM_COLORS = [
-    '#EF4444', '#F97316', '#F59E0B', '#EC4899',
-    '#E11D48', '#EA580C', '#FB7185', '#FBBF24',
-]
-
-export const CATEGORY_COLORS = [
-    { name: 'Vermelho Coral', hex: '#EF4444' },
+export const EXPENSE_PALETTE = [
     { name: 'Laranja', hex: '#EA580C' },
-    { name: 'Amarelo Âmbar', hex: '#F59E0B' },
+    { name: 'Âmbar', hex: '#F59E0B' },
+    { name: 'Amarelo', hex: '#FACC15' },
+    { name: 'Pêssego', hex: '#FDBA74' },
     { name: 'Rosa', hex: '#EC4899' },
     { name: 'Carmim', hex: '#BE123C' },
     { name: 'Marrom', hex: '#A0522D' },
-    { name: 'Magenta', hex: '#D946EF' },
-    { name: 'Verde Limão', hex: '#65A30D' },
-    { name: 'Verde Floresta', hex: '#15803D' },
-    { name: 'Verde Esmeralda', hex: '#10B981' },
-    { name: 'Ciano', hex: '#06B6D4' },
-    { name: 'Azul Royal', hex: '#3B82F6' },
-    { name: 'Violeta', hex: '#8B5CF6' },
-    { name: 'Cinza', hex: '#6B7280' },
 ]
+
+export const INCOME_PALETTE = [
+    { name: 'Turquesa', hex: '#14B8A6' },
+    { name: 'Azul-céu', hex: '#0EA5E9' },
+    { name: 'Azul Royal', hex: '#2563EB' },
+    { name: 'Índigo', hex: '#4F46E5' },
+    { name: 'Violeta', hex: '#8B5CF6' },
+    { name: 'Lilás', hex: '#C084FC' },
+    { name: 'Ardósia', hex: '#64748B' },
+]
+
+export const paletteFor = type => (type === 'INCOME' ? INCOME_PALETTE : EXPENSE_PALETTE)
 
 export const EMOJI_GROUPS = [
     { name: 'Dinheiro', icon: '💰', emojis: ['💰', '💵', '💳', '🏦', '💸', '🪙', '📈', '📉', '🧾', '💼', '🎁', '🤝', '🏷️', '💎', '🧮', '📊'] },
@@ -37,7 +37,18 @@ export const EMOJI_GROUPS = [
 const brl = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })
 export const formatMoney = cents => brl.format(cents / 100)
 
-// "1.234,56", "1234,5", "12.50" ou "R$ 30" -> centavos (nulo se inválido)
+export const MAX_AMOUNT_CENTS = 1_000_000_000
+
+const brlCompact = new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+    notation: 'compact',
+    maximumFractionDigits: 1,
+})
+
+export const formatCenter = cents =>
+    Math.abs(cents) >= 100_000_000 ? brlCompact.format(cents / 100) : formatMoney(cents)
+
 export function parseMoney(text) {
     const s = text.replace(/[^\d.,]/g, '')
     if (!s) return null
@@ -68,26 +79,25 @@ export function summarize(transactions) {
     return { income, expense, balance: income - expense }
 }
 
-export function buildSegments({ income }, transactions) {
-    const byCategory = new Map()
+export function buildSegments(transactions) {
+    const slices = new Map()
 
     for (const t of transactions) {
-        if (t.type !== 'EXPENSE') continue
-        const key = t.category ? `c${t.category.id}` : 'none'
-        const slice = byCategory.get(key) ?? {
+        const key = `${t.type}-${t.category ? t.category.id : 'none'}`
+        const slice = slices.get(key) ?? {
             key,
-            label: t.category?.name ?? 'Sem categoria',
+            label: t.category?.name ?? (t.type === 'INCOME' ? 'Receitas' : 'Gastos'),
             value: 0,
-            color: t.category?.color ?? EXPENSE_COLOR,
+            color: t.category?.color ?? (t.type === 'INCOME' ? INCOME_COLOR : EXPENSE_COLOR),
         }
         slice.value += t.amountCents
-        byCategory.set(key, slice)
+        slices.set(key, slice)
     }
 
-    return [
-        { key: 'income', label: 'Receitas', value: income, color: INCOME_COLOR },
-        ...byCategory.values(),
-    ]
+    // receitas primeiro, depois gastos
+    return [...slices.values()].sort(
+        (a, b) => (a.key.startsWith('INCOME') ? 0 : 1) - (b.key.startsWith('INCOME') ? 0 : 1)
+    )
 }
 
 // meses no formato "2026-10"
@@ -106,4 +116,13 @@ export function monthLabel(key) {
         year: 'numeric',
     })
     return text.charAt(0).toUpperCase() + text.slice(1)
+}
+
+export function maskMoney(text) {
+    const digits = text.replace(/\D/g, '').replace(/^0+/, '')
+    if (!digits) return ''
+
+    const padded = digits.padStart(3, '0')
+    const integer = padded.slice(0, -2).replace(/\B(?=(\d{3})+(?!\d))/g, '.')
+    return `${integer},${padded.slice(-2)}`
 }
