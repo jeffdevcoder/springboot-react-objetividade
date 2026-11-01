@@ -20,6 +20,7 @@ export const INCOME_PALETTE = [
     { name: 'Índigo', hex: '#4F46E5' },
     { name: 'Violeta', hex: '#8B5CF6' },
 ]
+
 export const paletteFor = type => (type === 'INCOME' ? INCOME_PALETTE : EXPENSE_PALETTE)
 
 export const EMOJI_GROUPS = [
