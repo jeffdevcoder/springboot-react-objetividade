@@ -324,6 +324,22 @@ html[data-theme='dark'] .fin-del.is-confirming { background: #ffffff; color: #00
     white-space: nowrap;
 }
 
+.fin-open {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+.fin-open:hover .fin-title { text-decoration: underline; text-underline-offset: 3px; }
+
 @media (max-width: 560px) {
     .fin-overview { flex-direction: column; align-items: stretch; gap: 22px; }
     .donut-wrap { align-self: center; width: 180px; height: 180px; }

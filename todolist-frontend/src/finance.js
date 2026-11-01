@@ -2,25 +2,24 @@ export const INCOME_COLOR = '#4ADE80'
 export const EXPENSE_COLOR = '#EF4444'
 
 export const EXPENSE_PALETTE = [
-    { name: 'Laranja', hex: '#EA580C' },
-    { name: 'Âmbar', hex: '#F59E0B' },
-    { name: 'Amarelo', hex: '#FACC15' },
-    { name: 'Pêssego', hex: '#FDBA74' },
-    { name: 'Rosa', hex: '#EC4899' },
+    { name: 'Vinho', hex: '#660022' },
+    { name: 'Vermelho', hex: '#991B1B' },
+    { name: 'Magenta', hex: '#D946EF' },
+    { name: 'Rosa', hex: '#F472B6' },
+    { name: 'Rosa Claro', hex: '#FCE7F3' },
     { name: 'Carmim', hex: '#BE123C' },
     { name: 'Marrom', hex: '#A0522D' },
 ]
 
 export const INCOME_PALETTE = [
-    { name: 'Turquesa', hex: '#14B8A6' },
-    { name: 'Azul-céu', hex: '#0EA5E9' },
-    { name: 'Azul Royal', hex: '#2563EB' },
+    { name: 'Verde-escuro', hex: '#004D00' },
+    { name: 'Verde', hex: '#007A33' },
+    { name: 'Verde-sálvia', hex: '#66B3A1' },
+    { name: 'Menta', hex: '#B2E0D4' },
+    { name: 'Verde-claro', hex: '#E0F7F1' },
     { name: 'Índigo', hex: '#4F46E5' },
     { name: 'Violeta', hex: '#8B5CF6' },
-    { name: 'Lilás', hex: '#C084FC' },
-    { name: 'Ardósia', hex: '#64748B' },
 ]
-
 export const paletteFor = type => (type === 'INCOME' ? INCOME_PALETTE : EXPENSE_PALETTE)
 
 export const EMOJI_GROUPS = [

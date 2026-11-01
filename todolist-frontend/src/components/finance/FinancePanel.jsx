@@ -17,6 +17,8 @@ import '../../styles/finance.css'
 
 const formatDay = iso => iso.split('-').reverse().slice(0, 2).join('/')
 
+const rowKey = t => (t.id !== null ? `t${t.id}` : `r${t.recurringId}`)
+
 function rowVisual(t) {
     if (t.category) return { icon: t.category.emoji, color: t.category.color }
     return t.type === 'INCOME'
@@ -30,6 +32,7 @@ export default function FinancePanel() {
     const [error, setError] = useState('')
     const [modalOpen, setModalOpen] = useState(false)
     const [confirmId, setConfirmId] = useState(null)
+    const [editing, setEditing] = useState(null)
 
     const currentMonth = toMonthKey(new Date())
     const isCurrent = month === currentMonth
@@ -58,14 +61,20 @@ export default function FinancePanel() {
         refresh()
     }
 
-    async function handleDelete(id) {
-        if (confirmId !== id) {
-            setConfirmId(id)
+    async function handleDelete(t) {
+        const key = rowKey(t)
+        if (confirmId !== key) {
+            setConfirmId(key)
             return
         }
         try {
-            await api(`/finance/transactions/${id}`, { method: 'DELETE' })
-            setItems(list => list.filter(t => t.id !== id))
+            if (t.recurringId) {
+                await api(`/finance/recurring/${t.recurringId}?month=${month}`, { method: 'DELETE' })
+                refresh()
+            } else {
+                await api(`/finance/transactions/${t.id}`, { method: 'DELETE' })
+                setItems(list => list.filter(x => x.id !== t.id))
+            }
             setConfirmId(null)
         } catch (err) {
             setError(err.message)
@@ -87,6 +96,16 @@ export default function FinancePanel() {
         hint = pct > 999 ? '999%+ gasto' : `${pct}% gasto`
     } else if (totals.expense > 0) {
         hint = 'sem receitas'
+    }
+
+    function openNew() {
+        setEditing(null)
+        setModalOpen(true)
+    }
+
+    function openEdit(t) {
+        setEditing(t)
+        setModalOpen(true)
     }
 
     return (
@@ -131,7 +150,7 @@ export default function FinancePanel() {
                     </div>
                 </div>
 
-                <button className="task-add" type="button" onClick={() => setModalOpen(true)}>
+                <button className="task-add" type="button" onClick={openNew}>
                     + Lançamento
                 </button>
             </div>
@@ -178,36 +197,40 @@ export default function FinancePanel() {
             {items.length > 0 ? (
                 <ul className="fin-list">
                     {items.map(t => (
-                        <li key={t.id} className="fin-row">
-                            <span
-                                className="fin-badge"
-                                style={{ background: `color-mix(in srgb, ${rowVisual(t).color} 20%, transparent)` }}
-                                >
-                                {rowVisual(t).icon}
-                            </span>
+                        <li key={rowKey(t)} className="fin-row">
+                            <button type="button" className="fin-open" onClick={() => openEdit(t)}>
+        <span
+            className="fin-badge"
+            style={{ background: `color-mix(in srgb, ${rowVisual(t).color} 20%, transparent)` }}
+        >
+            {rowVisual(t).icon}
+        </span>
 
-                            <div className="fin-main">
-                                <span className="fin-title">
-                                    {t.description || (t.category ? t.category.name : t.type === 'INCOME' ? 'Receita' : 'Gasto')}
-                                </span>
-                                <span className="fin-sub">
-                                    {t.category && t.description ? `${t.category.name} · ` : ''}{formatDay(t.date)}
-                                </span>
-                            </div>
+                                <div className="fin-main">
+            <span className="fin-title">
+                {t.description || (t.category ? t.category.name : t.type === 'INCOME' ? 'Receita' : 'Gasto')}
+            </span>
+                                    <span className="fin-sub">
+                {t.recurringId ? '🔁 Fixo · ' : ''}
+                                        {t.category && t.description ? `${t.category.name} · ` : ''}
+                                        {formatDay(t.date)}
+            </span>
+                                </div>
 
-                            <span className={`fin-amount ${t.type === 'INCOME' ? 'is-income' : 'is-expense'}`}>
-                                {t.type === 'INCOME' ? '+ ' : '− '}{formatMoney(t.amountCents)}
-                            </span>
+                                <span className={`fin-amount ${t.type === 'INCOME' ? 'is-income' : 'is-expense'}`}>
+            {t.type === 'INCOME' ? '+ ' : '− '}{formatMoney(t.amountCents)}
+        </span>
+                            </button>
 
                             <button
                                 type="button"
-                                className={`fin-del ${confirmId === t.id ? 'is-confirming' : ''}`}
-                                onClick={() => handleDelete(t.id)}
-                                aria-label={confirmId === t.id ? 'Confirmar exclusão' : 'Excluir lançamento'}
-                                title="Excluir lançamento"
+                                className={`fin-del ${confirmId === rowKey(t) ? 'is-confirming' : ''}`}
+                                onClick={() => handleDelete(t)}
+                                aria-label={t.recurringId ? 'Encerrar lançamento fixo' : 'Excluir lançamento'}
+                                title={t.recurringId ? 'Encerrar este lançamento fixo a partir deste mês' : 'Excluir lançamento'}
                             >
-                                {confirmId === t.id ? (
-                                    'Excluir?'
+                                {confirmId === rowKey(t) ? (
+                                    t.recurringId ? 'Encerrar?' : 'Excluir?'
                                 ) : (
                                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                          strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -226,6 +249,8 @@ export default function FinancePanel() {
 
             <TransactionModal
                 open={modalOpen}
+                transaction={editing}
+                month={month}
                 onClose={() => setModalOpen(false)}
                 onSaved={handleSaved}
                 onCategoriesChanged={refresh}

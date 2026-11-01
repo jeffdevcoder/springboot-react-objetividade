@@ -5,44 +5,54 @@ import EmojiPicker from './EmojiPicker'
 import { MAX_AMOUNT_CENTS, formatMoney, paletteFor, parseMoney, maskMoney } from '../../finance'
 
 const TYPES = [
-    ['EXPENSE', 'Gasto'],
     ['INCOME', 'Receita'],
+    ['EXPENSE', 'Gasto'],
 ]
 
 const DEFAULT_EMOJI = '🏷️'
 const today = () => new Date().toLocaleDateString('en-CA')
 
-export default function TransactionModal({ open, onClose, onSaved, onCategoriesChanged }) {
-    const [type, setType] = useState('EXPENSE')
+export default function TransactionModal({ open, transaction, month, onClose, onSaved, onCategoriesChanged }) {
+    const editing = Boolean(transaction)
+
+    const [type, setType] = useState('INCOME')
     const [amount, setAmount] = useState('')
     const [description, setDescription] = useState('')
     const [date, setDate] = useState(today)
     const [categories, setCategories] = useState([])
     const [categoryId, setCategoryId] = useState(null)
-
-    // editor de categoria: null = fechado, { id: null } = nova, { id: 5 } = editando
     const [editor, setEditor] = useState(null)
     const [name, setName] = useState('')
     const [emoji, setEmoji] = useState(DEFAULT_EMOJI)
     const [color, setColor] = useState('')
     const [emojiOpen, setEmojiOpen] = useState(false)
     const [confirmDelete, setConfirmDelete] = useState(false)
-
     const [error, setError] = useState('')
     const [saving, setSaving] = useState(false)
     const [catSaving, setCatSaving] = useState(false)
     const [wasOpen, setWasOpen] = useState(false)
     const amountRef = useRef(null)
+    const [monthly, setMonthly] = useState(false)
 
     // formulário limpo toda vez que abre
     if (open !== wasOpen) {
         setWasOpen(open)
         if (open) {
-            setType('EXPENSE')
-            setAmount('')
-            setDescription('')
-            setDate(today())
-            setCategoryId(null)
+            if (transaction) {
+                setType(transaction.type)
+                setAmount(maskMoney(String(transaction.amountCents)))
+                setDescription(transaction.description)
+                setDate(transaction.date)
+                setCategoryId(transaction.category ? transaction.category.id : null)
+                setMonthly(Boolean(transaction.recurringId))
+            } else {
+                setType('INCOME')
+                setAmount('')
+                setDescription('')
+                setDate(today())
+                setCategoryId(null)
+                setMonthly(false)
+            }
             setEditor(null)
             setEmojiOpen(false)
             setConfirmDelete(false)
@@ -202,12 +212,26 @@ export default function TransactionModal({ open, onClose, onSaved, onCategoriesC
             return
         }
 
+        if (!description.trim() && !categoryId) {
+            setError('Informe a descrição ou escolha uma categoria')
+            return
+        }
+
         setSaving(true)
         try {
-            const created = await api('/finance/transactions', {
-                method: 'POST',
-                body: { type, amountCents, description: description.trim(), categoryId, date },
-            })
+            const body = { type, amountCents, description: description.trim(), categoryId, date, monthly }
+
+            let created
+            if (!editing) {
+                created = await api('/finance/transactions', { method: 'POST', body })
+            } else if (transaction.recurringId) {
+                created = await api(`/finance/recurring/${transaction.recurringId}?month=${month}`, {
+                    method: 'PUT',
+                    body,
+                })
+            } else {
+                created = await api(`/finance/transactions/${transaction.id}`, { method: 'PUT', body })
+            }
             onSaved(created)
             onClose()
         } catch (err) {
@@ -217,12 +241,23 @@ export default function TransactionModal({ open, onClose, onSaved, onCategoriesC
         }
     }
 
-    const invalid = !amount.trim() || !description.trim() || !date
+    const needsOne = !description.trim() && !categoryId
+    const invalid = !amount.trim() || !date || needsOne
+    const wasFixed = editing && Boolean(transaction.recurringId)
+
+    let monthlyHint = ''
+    if (monthly) {
+        monthlyHint = wasFixed
+            ? 'A mudança vale deste mês em diante (da data, só o dia conta).'
+            : 'Aparece todo mês, a partir da data escolhida.'
+    } else if (wasFixed) {
+        monthlyHint = 'Deixa de ser fixo: este mês vira um lançamento comum, e os meses seguintes não terão mais.'
+    }
 
     return (
         <div className={`task-overlay ${open ? 'is-open' : ''}`} onMouseDown={onClose}>
             <form className="task-modal" onSubmit={handleSubmit} onMouseDown={e => e.stopPropagation()}>
-                <h2>Novo lançamento</h2>
+                <h2>{editing ? 'Editar lançamento' : 'Novo lançamento'}</h2>
 
                 <div className="task-options" role="radiogroup" aria-label="Tipo">
                     {TYPES.map(([value, label]) => (
@@ -254,7 +289,9 @@ export default function TransactionModal({ open, onClose, onSaved, onCategoriesC
                 </div>
 
                 <div className="fin-field">
-                    <label className="form-label" htmlFor="fin-description">Descrição</label>
+                    <label className="form-label" htmlFor="fin-description">
+                        Descrição{categoryId ? ' (opcional)' : ''}
+                    </label>
                     <input
                         id="fin-description"
                         className="form-input"
@@ -266,7 +303,9 @@ export default function TransactionModal({ open, onClose, onSaved, onCategoriesC
                 </div>
 
                 <div className="fin-field">
-                    <span className="form-label">Categoria (opcional)</span>
+                    <span className="form-label">
+                        Categoria{description.trim() ? ' (opcional)' : ''}
+                    </span>
 
                     <div className="cat-chips">
                         {visible.map(c => (
@@ -364,7 +403,6 @@ export default function TransactionModal({ open, onClose, onSaved, onCategoriesC
                                     Todas as cores de {type === 'INCOME' ? 'receita' : 'gasto'} já estão em uso.
                                 </p>
                             )}
-                            {colorName && <p className="tag-caption">{colorName}</p>}
 
                             <div className="cat-new-actions">
                                 {editor.id !== null && (
@@ -413,10 +451,30 @@ export default function TransactionModal({ open, onClose, onSaved, onCategoriesC
 
                 {error && <p className="task-error">{error}</p>}
 
+                {!editing && (
+                    <>
+                        <label className="task-urgent">
+                            <input
+                                type="checkbox"
+                                checked={monthly}
+                                onChange={e => setMonthly(e.target.checked)}
+                            />
+                            <span>🔁 {type === 'INCOME' ? 'Receita fixa mensal' : 'Gasto fixo mensal'}</span>
+                        </label>
+                        {monthlyHint && <p className="tag-caption">{monthlyHint}</p>}
+                    </>
+                )}
+
+                {editing && transaction.recurringId && (
+                    <p className="tag-caption">
+                        🔁 Fixo mensal: a mudança vale deste mês em diante (da data, só o dia conta).
+                    </p>
+                )}
+
                 <div className="task-actions">
                     <button type="button" className="task-btn" onClick={onClose}>Cancelar</button>
                     <button type="submit" className="task-btn is-primary" disabled={saving || invalid}>
-                        Adicionar
+                        {editing ? 'Salvar' : 'Adicionar'}
                     </button>
                 </div>
             </form>
