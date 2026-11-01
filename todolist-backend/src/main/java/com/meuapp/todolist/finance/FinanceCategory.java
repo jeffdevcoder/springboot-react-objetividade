@@ -2,10 +2,16 @@ package com.meuapp.todolist.finance;
 
 import com.meuapp.todolist.user.User;
 import jakarta.persistence.*;
+import org.hibernate.annotations.ColumnDefault;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 @Entity
-@Table(name = "finance_categories",
-        uniqueConstraints = @UniqueConstraint(columnNames = {"user_id", "name"}))
+@Table(name = "finance_categories", uniqueConstraints = {
+        @UniqueConstraint(columnNames = {"user_id", "name"}),
+        @UniqueConstraint(columnNames = {"user_id", "color"})
+})
+
 public class FinanceCategory {
 
     @Id
@@ -25,6 +31,12 @@ public class FinanceCategory {
     @Column(nullable = false, length = 7)
     private String color; // "#EF4444"
 
+    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.VARCHAR)
+    @ColumnDefault("'EXPENSE'")
+    @Column(name = "kind", nullable = false, length = 10)
+    private TransactionType type = TransactionType.EXPENSE;
+
     public Long getId() { return id; }
     public User getUser() { return user; }
     public void setUser(User user) { this.user = user; }
@@ -34,4 +46,6 @@ public class FinanceCategory {
     public void setEmoji(String emoji) { this.emoji = emoji; }
     public String getColor() { return color; }
     public void setColor(String color) { this.color = color; }
+    public TransactionType getType() { return type; }
+    public void setType(TransactionType type) { this.type = type; }
 }
