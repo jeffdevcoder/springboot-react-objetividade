@@ -32,10 +32,19 @@ public class Transaction {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id")
-    private FinanceCategory category; // nulo = sem categoria
+    private FinanceCategory category;
 
     @Column(name = "transaction_date", nullable = false)
     private LocalDate date;
+
+    @Column(name = "installment_group", length = 36)
+    private String installmentGroup;
+
+    @Column(name = "installment_number")
+    private Integer installmentNumber;
+
+    @Column(name = "installment_total")
+    private Integer installmentTotal;
 
     public Long getId() { return id; }
     public User getUser() { return user; }
@@ -50,4 +59,10 @@ public class Transaction {
     public void setCategory(FinanceCategory category) { this.category = category; }
     public LocalDate getDate() { return date; }
     public void setDate(LocalDate date) { this.date = date; }
+    public String getInstallmentGroup() { return installmentGroup; }
+    public void setInstallmentGroup(String g) { this.installmentGroup = g; }
+    public Integer getInstallmentNumber() { return installmentNumber; }
+    public void setInstallmentNumber(Integer n) { this.installmentNumber = n; }
+    public Integer getInstallmentTotal() { return installmentTotal; }
+    public void setInstallmentTotal(Integer n) { this.installmentTotal = n; }
 }

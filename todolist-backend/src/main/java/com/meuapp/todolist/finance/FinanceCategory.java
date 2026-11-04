@@ -29,7 +29,7 @@ public class FinanceCategory {
     private String emoji;
 
     @Column(nullable = false, length = 7)
-    private String color; // "#EF4444"
+    private String color;
 
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.VARCHAR)

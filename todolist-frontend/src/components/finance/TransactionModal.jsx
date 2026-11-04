@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { api } from '../../api'
+import { MAX_AMOUNT_CENTS, formatMoney, maskMoney, paletteFor, parseMoney } from '../../finance'
 import DateField from '../DateField'
 import EmojiPicker from './EmojiPicker'
-import { MAX_AMOUNT_CENTS, formatMoney, paletteFor, parseMoney, maskMoney } from '../../finance'
+import InstallmentPicker from './InstallmentPicker'
 
 const TYPES = [
     ['INCOME', 'Receita'],
@@ -14,27 +15,31 @@ const today = () => new Date().toLocaleDateString('en-CA')
 
 export default function TransactionModal({ open, transaction, month, onClose, onSaved, onCategoriesChanged }) {
     const editing = Boolean(transaction)
+    const wasFixed = editing && Boolean(transaction.recurringId)
 
     const [type, setType] = useState('INCOME')
     const [amount, setAmount] = useState('')
     const [description, setDescription] = useState('')
     const [date, setDate] = useState(today)
+    const [monthly, setMonthly] = useState(false)
     const [categories, setCategories] = useState([])
     const [categoryId, setCategoryId] = useState(null)
+    const [installOpen, setInstallOpen] = useState(false)
+
     const [editor, setEditor] = useState(null)
     const [name, setName] = useState('')
     const [emoji, setEmoji] = useState(DEFAULT_EMOJI)
     const [color, setColor] = useState('')
     const [emojiOpen, setEmojiOpen] = useState(false)
     const [confirmDelete, setConfirmDelete] = useState(false)
+
     const [error, setError] = useState('')
     const [saving, setSaving] = useState(false)
     const [catSaving, setCatSaving] = useState(false)
     const [wasOpen, setWasOpen] = useState(false)
     const amountRef = useRef(null)
-    const [monthly, setMonthly] = useState(false)
+    const [installments, setInstallments] = useState('1')
 
-    // formulário limpo toda vez que abre
     if (open !== wasOpen) {
         setWasOpen(open)
         if (open) {
@@ -45,6 +50,7 @@ export default function TransactionModal({ open, transaction, month, onClose, on
                 setDate(transaction.date)
                 setCategoryId(transaction.category ? transaction.category.id : null)
                 setMonthly(Boolean(transaction.recurringId))
+                setInstallments(transaction.installmentTotal > 1 ? String(transaction.installmentTotal) : '1')
             } else {
                 setType('INCOME')
                 setAmount('')
@@ -52,9 +58,11 @@ export default function TransactionModal({ open, transaction, month, onClose, on
                 setDate(today())
                 setCategoryId(null)
                 setMonthly(false)
+                setInstallments('1')
             }
             setEditor(null)
             setEmojiOpen(false)
+            setInstallOpen(false)
             setConfirmDelete(false)
             setError('')
         }
@@ -80,27 +88,35 @@ export default function TransactionModal({ open, transaction, month, onClose, on
         }
     }, [open, onClose])
 
-    // a confirmação de excluir se desfaz sozinha em 4 segundos
     useEffect(() => {
         if (!confirmDelete) return
         const timer = setTimeout(() => setConfirmDelete(false), 4000)
         return () => clearTimeout(timer)
     }, [confirmDelete])
 
-    // só aparecem categorias e cores do tipo escolhido
     const visible = categories.filter(c => c.type === type)
     const takenByOthers = new Set(
         categories.filter(c => c.id !== editor?.id).map(c => c.color.toUpperCase())
     )
     const freeColors = paletteFor(type).filter(c => !takenByOthers.has(c.hex))
-    const colorName = paletteFor(type).find(c => c.hex === color)?.name
 
     function changeType(next) {
         setType(next)
         setCategoryId(null)
         setEditor(null)
         setEmojiOpen(false)
+        setInstallOpen(false)
+        setInstallments('1')
         setError('')
+    }
+
+    function handleAmountChange(e) {
+        const masked = maskMoney(e.target.value)
+        const cents = parseMoney(masked)
+
+        if (cents && cents > MAX_AMOUNT_CENTS) return
+
+        setAmount(masked)
     }
 
     function openCreate() {
@@ -134,16 +150,6 @@ export default function TransactionModal({ open, transaction, month, onClose, on
         setEditor(null)
         setEmojiOpen(false)
         setConfirmDelete(false)
-    }
-
-    function handleAmountChange(e) {
-        const masked = maskMoney(e.target.value)
-        const cents = parseMoney(masked)
-
-        // não deixa digitar acima do limite
-        if (cents && cents > MAX_AMOUNT_CENTS) return
-
-        setAmount(masked)
     }
 
     async function saveCategory() {
@@ -206,12 +212,10 @@ export default function TransactionModal({ open, transaction, month, onClose, on
             setError('Informe um valor válido')
             return
         }
-
         if (amountCents > MAX_AMOUNT_CENTS) {
             setError(`O valor máximo é ${formatMoney(MAX_AMOUNT_CENTS)}`)
             return
         }
-
         if (!description.trim() && !categoryId) {
             setError('Informe a descrição ou escolha uma categoria')
             return
@@ -219,20 +223,28 @@ export default function TransactionModal({ open, transaction, month, onClose, on
 
         setSaving(true)
         try {
-            const body = { type, amountCents, description: description.trim(), categoryId, date, monthly }
+            const body = { type, amountCents, description: description.trim(), categoryId, date, monthly}
 
-            let created
+            if (canInstall && monthly && installmentsN > 1) {
+                body.installments = installmentsN
+                body.monthly = false
+            }
+
+            if (isInstallment) body.installments = installmentsN
+
+            let saved
             if (!editing) {
-                created = await api('/finance/transactions', { method: 'POST', body })
+                saved = await api('/finance/transactions', { method: 'POST', body })
             } else if (transaction.recurringId) {
-                created = await api(`/finance/recurring/${transaction.recurringId}?month=${month}`, {
+                saved = await api(`/finance/recurring/${transaction.recurringId}?month=${month}`, {
                     method: 'PUT',
                     body,
                 })
             } else {
-                created = await api(`/finance/transactions/${transaction.id}`, { method: 'PUT', body })
+                saved = await api(`/finance/transactions/${transaction.id}`, { method: 'PUT', body })
             }
-            onSaved(created)
+
+            onSaved(saved)
             onClose()
         } catch (err) {
             setError(err.message)
@@ -241,9 +253,10 @@ export default function TransactionModal({ open, transaction, month, onClose, on
         }
     }
 
-    const needsOne = !description.trim() && !categoryId
-    const invalid = !amount.trim() || !date || needsOne
-    const wasFixed = editing && Boolean(transaction.recurringId)
+    const invalid = !amount.trim() || !date || (!description.trim() && !categoryId)
+    const installmentsN = Math.min(Math.max(parseInt(installments, 10) || 1, 1), 60)
+    const isInstallment = editing && transaction.installmentTotal > 1
+    const canInstall = !editing && type === 'EXPENSE'
 
     let monthlyHint = ''
     if (monthly) {
@@ -261,13 +274,14 @@ export default function TransactionModal({ open, transaction, month, onClose, on
 
                 <div className="task-options" role="radiogroup" aria-label="Tipo">
                     {TYPES.map(([value, label]) => (
-                        <label key={value}>
+                        <label key={value} className={value === 'INCOME' ? 'opt-income' : 'opt-expense'}>
                             <input
                                 type="radio"
                                 name="fin-type"
                                 value={value}
                                 checked={type === value}
                                 onChange={() => changeType(value)}
+                                autoComplete="off"
                             />
                             <span>{label}</span>
                         </label>
@@ -285,6 +299,7 @@ export default function TransactionModal({ open, transaction, month, onClose, on
                         maxLength={13}
                         value={amount}
                         onChange={handleAmountChange}
+                        autoComplete="off"
                     />
                 </div>
 
@@ -299,6 +314,7 @@ export default function TransactionModal({ open, transaction, month, onClose, on
                         value={description}
                         maxLength={100}
                         onChange={e => setDescription(e.target.value)}
+                        autoComplete="off"
                     />
                 </div>
 
@@ -375,10 +391,11 @@ export default function TransactionModal({ open, transaction, month, onClose, on
                                     onChange={e => setName(e.target.value)}
                                     onKeyDown={e => {
                                         if (e.key === 'Enter') {
-                                            e.preventDefault() // não envia o lançamento inteiro
+                                            e.preventDefault()
                                             saveCategory()
                                         }
                                     }}
+                                    autoComplete="off"
                                 />
                             </div>
 
@@ -449,27 +466,59 @@ export default function TransactionModal({ open, transaction, month, onClose, on
                     </div>
                 </div>
 
+                {!isInstallment && (
+                    <label className="task-urgent">
+                        <input
+                            type="checkbox"
+                            checked={monthly}
+                            onChange={e => {
+                                setMonthly(e.target.checked)
+                                if (!e.target.checked) {
+                                    setInstallments('1')
+                                    setInstallOpen(false)
+                                }
+                            }}
+                        />
+                        <span>🔁 {type === 'INCOME' ? 'Receita fixa mensal' : 'Gasto fixo mensal'}</span>
+                    </label>
+                )}
+
+                {(isInstallment || (canInstall && monthly)) && (
+                    <div className="fin-field">
+                        <span className="form-label">Parcelas</span>
+
+                        <div className="cat-emoji-anchor">
+                            <button
+                                type="button"
+                                className="form-input installment-btn"
+                                onClick={() => setInstallOpen(o => !o)}
+                                aria-haspopup="dialog"
+                                aria-expanded={installOpen}
+                            >
+                                <span>{installmentsN > 1 ? `${installmentsN}x` : 'Sem fim'}</span>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                     strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                    <path d="M6 9l6 6 6-6" />
+                                </svg>
+                            </button>
+
+                            {installOpen && (
+                                <InstallmentPicker
+                                    value={installmentsN}
+                                    min={isInstallment ? transaction.installmentNumber : 2}
+                                    allowNone={!isInstallment}
+                                    onSelect={n => {
+                                        setInstallments(String(n))
+                                        setInstallOpen(false)
+                                    }}
+                                    onClose={() => setInstallOpen(false)}
+                                />
+                            )}
+                        </div>
+                    </div>
+                )}
+
                 {error && <p className="task-error">{error}</p>}
-
-                {!editing && (
-                    <>
-                        <label className="task-urgent">
-                            <input
-                                type="checkbox"
-                                checked={monthly}
-                                onChange={e => setMonthly(e.target.checked)}
-                            />
-                            <span>🔁 {type === 'INCOME' ? 'Receita fixa mensal' : 'Gasto fixo mensal'}</span>
-                        </label>
-                        {monthlyHint && <p className="tag-caption">{monthlyHint}</p>}
-                    </>
-                )}
-
-                {editing && transaction.recurringId && (
-                    <p className="tag-caption">
-                        🔁 Fixo mensal: a mudança vale deste mês em diante (da data, só o dia conta).
-                    </p>
-                )}
 
                 <div className="task-actions">
                     <button type="button" className="task-btn" onClick={onClose}>Cancelar</button>

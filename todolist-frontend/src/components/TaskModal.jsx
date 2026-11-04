@@ -143,6 +143,7 @@ export default function TaskModal({ open, task, defaultDate, onClose, onSaved, o
                     maxLength={100}
                     onChange={e => setTitle(e.target.value)}
                     required
+                    autoComplete="off"
                 />
                 <textarea
                     className="form-input"
@@ -185,6 +186,7 @@ export default function TaskModal({ open, task, defaultDate, onClose, onSaved, o
                             type="checkbox"
                             checked={noEnd}
                             onChange={e => setNoEnd(e.target.checked)}
+                            autoComplete="off"
                         />
                         <span>Sem data final</span>
                     </label>
@@ -211,6 +213,7 @@ export default function TaskModal({ open, task, defaultDate, onClose, onSaved, o
                         type="time"
                         value={time}
                         onChange={e => setTime(e.target.value)}
+                        autoComplete="off"
                     />
                 </div>
 
@@ -223,6 +226,7 @@ export default function TaskModal({ open, task, defaultDate, onClose, onSaved, o
                                 value={value}
                                 checked={recurrence === value}
                                 onChange={() => setRecurrence(value)}
+                                autoComplete="off"
                             />
                             <span>{label}</span>
                         </label>
@@ -237,6 +241,7 @@ export default function TaskModal({ open, task, defaultDate, onClose, onSaved, o
                                     type="checkbox"
                                     checked={weekdays.includes(value)}
                                     onChange={() => toggleDay(value)}
+                                    autoComplete="off"
                                 />
                                 <span>{label}</span>
                             </label>
@@ -249,6 +254,7 @@ export default function TaskModal({ open, task, defaultDate, onClose, onSaved, o
                         type="checkbox"
                         checked={urgent}
                         onChange={e => setUrgent(e.target.checked)}
+                        autoComplete="off"
                     />
                     <span>🚨 É urgente?</span>
                 </label>

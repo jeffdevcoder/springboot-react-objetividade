@@ -9,6 +9,13 @@ export const EXPENSE_PALETTE = [
     { name: 'Rosa Claro', hex: '#FCE7F3' },
     { name: 'Carmim', hex: '#BE123C' },
     { name: 'Marrom', hex: '#A0522D' },
+    { name: 'Laranja', hex: '#EA580C' },
+    { name: 'Terracota', hex: '#C2410C' },
+    { name: 'Âmbar', hex: '#F59E0B' },
+    { name: 'Salmão', hex: '#FDA4AF' },
+    { name: 'Framboesa', hex: '#9D174D' },
+    { name: 'Chocolate', hex: '#78350F' },
+    { name: 'Cinza', hex: '#6B7280' },
 ]
 
 export const INCOME_PALETTE = [
@@ -19,6 +26,13 @@ export const INCOME_PALETTE = [
     { name: 'Verde-claro', hex: '#E0F7F1' },
     { name: 'Índigo', hex: '#4F46E5' },
     { name: 'Violeta', hex: '#8B5CF6' },
+    { name: 'Esmeralda', hex: '#10B981' },
+    { name: 'Floresta', hex: '#15803D' },
+    { name: 'Lima', hex: '#65A30D' },
+    { name: 'Ciano', hex: '#06B6D4' },
+    { name: 'Azul', hex: '#3B82F6' },
+    { name: 'Petróleo', hex: '#0F766E' },
+    { name: 'Turquesa', hex: '#2DD4BF' },
 ]
 
 export const paletteFor = type => (type === 'INCOME' ? INCOME_PALETTE : EXPENSE_PALETTE)
@@ -86,6 +100,8 @@ export function buildSegments(transactions) {
         const key = `${t.type}-${t.category ? t.category.id : 'none'}`
         const slice = slices.get(key) ?? {
             key,
+            type: t.type,
+            emoji: t.category?.emoji ?? (t.type === 'INCOME' ? '💰' : '💸'),
             label: t.category?.name ?? (t.type === 'INCOME' ? 'Receitas' : 'Gastos'),
             value: 0,
             color: t.category?.color ?? (t.type === 'INCOME' ? INCOME_COLOR : EXPENSE_COLOR),
@@ -94,13 +110,11 @@ export function buildSegments(transactions) {
         slices.set(key, slice)
     }
 
-    // receitas primeiro, depois gastos
     return [...slices.values()].sort(
         (a, b) => (a.key.startsWith('INCOME') ? 0 : 1) - (b.key.startsWith('INCOME') ? 0 : 1)
     )
 }
 
-// meses no formato "2026-10"
 export const toMonthKey = date =>
     `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
 

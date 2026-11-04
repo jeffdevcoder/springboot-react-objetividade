@@ -12,7 +12,6 @@ export default function Calendar({ value, min, today, align = 'center', onSelect
     })
 
     useEffect(() => {
-        // em fase de captura, para o Esc fechar só o calendário e não o pop-up que está atrás
         const onKey = e => {
             if (e.key === 'Escape') {
                 e.stopPropagation()

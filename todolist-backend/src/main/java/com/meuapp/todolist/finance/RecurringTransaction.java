@@ -38,10 +38,10 @@ public class RecurringTransaction {
     private int dayOfMonth;
 
     @Column(name = "start_month", nullable = false)
-    private LocalDate startMonth; // dia 1 do primeiro mês em que vale
+    private LocalDate startMonth;
 
     @Column(name = "end_month")
-    private LocalDate endMonth;   // dia 1 do último mês em que vale; nulo = sem fim
+    private LocalDate endMonth;
 
     public Long getId() { return id; }
     public User getUser() { return user; }

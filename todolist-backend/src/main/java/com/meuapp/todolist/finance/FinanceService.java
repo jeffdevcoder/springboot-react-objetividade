@@ -9,9 +9,8 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
 import java.time.YearMonth;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class FinanceService {
@@ -31,18 +30,28 @@ public class FinanceService {
         this.users = users;
     }
 
-    // ---------- lançamentos ----------
-
     @Transactional(readOnly = true)
     public List<TransactionView> month(String email, YearMonth month) {
         User user = user(email);
 
-        List<TransactionView> result = new ArrayList<>(
-                repository.findByUserAndDateBetweenOrderByDateDescIdDesc(
-                                user, month.atDay(1), month.atEndOfMonth())
-                        .stream().map(TransactionView::of).toList());
+        List<Transaction> txs = repository.findByUserAndDateBetweenOrderByDateDescIdDesc(
+                user, month.atDay(1), month.atEndOfMonth());
 
-        // fixos mensais que valem neste mês
+        Set<String> groups = txs.stream().map(Transaction::getInstallmentGroup)
+                .filter(Objects::nonNull).collect(Collectors.toSet());
+        Map<String, Integer> paid = new HashMap<>();
+        if (!groups.isEmpty()) {
+            LocalDate today = LocalDate.now();
+            for (Transaction g : repository.findByUserAndInstallmentGroupIn(user, groups)) {
+                if (!g.getDate().isAfter(today)) paid.merge(g.getInstallmentGroup(), 1, Integer::sum);
+            }
+        }
+
+        List<TransactionView> result = new ArrayList<>(txs.stream()
+                .map(t -> TransactionView.of(t, t.getInstallmentGroup() == null
+                        ? null : paid.getOrDefault(t.getInstallmentGroup(), 0)))
+                .toList());
+
         LocalDate monthStart = month.atDay(1);
         for (RecurringTransaction r : recurringRepo.findByUser(user)) {
             boolean started = !r.getStartMonth().isAfter(monthStart);
@@ -79,6 +88,36 @@ public class FinanceService {
 
         LocalDate date = req.date() != null ? req.date() : LocalDate.now();
 
+        int n = req.installments() == null ? 1 : req.installments();
+        if (n > 1 && req.type() == TransactionType.INCOME) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Parcelas só são permitidas em gastos");
+        }
+        if (n > 1 && req.monthly()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Parcelado e fixo mensal não podem ser usados juntos");
+        }
+
+        if (n > 1) {
+            String group = UUID.randomUUID().toString();
+            Transaction first = null;
+            for (int i = 0; i < n; i++) {
+                Transaction t = new Transaction();
+                t.setUser(user);
+                t.setType(req.type());
+                t.setAmountCents(req.amountCents());
+                t.setDescription(description);
+                t.setCategory(category);
+                t.setDate(date.plusMonths(i));
+                t.setInstallmentGroup(group);
+                t.setInstallmentNumber(i + 1);
+                t.setInstallmentTotal(n);
+                repository.save(t);
+                if (first == null) first = t;
+            }
+            return TransactionView.of(first);
+        }
+
         if (req.monthly()) {
             RecurringTransaction r = new RecurringTransaction();
             r.setUser(user);
@@ -105,9 +144,15 @@ public class FinanceService {
 
     @Transactional
     public void delete(String email, Long id) {
-        Transaction t = repository.findByIdAndUser(id, user(email))
+        User user = user(email);
+        Transaction t = repository.findByIdAndUser(id, user)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
-        repository.delete(t);
+
+        if (t.getInstallmentGroup() != null) {
+            repository.deleteAll(repository.findByUserAndInstallmentGroup(user, t.getInstallmentGroup()));
+        } else {
+            repository.delete(t);
+        }
     }
 
     @Transactional
@@ -116,13 +161,11 @@ public class FinanceService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
 
         if (!from.atDay(1).isAfter(r.getStartMonth())) {
-            recurringRepo.delete(r); // era o primeiro mês: some por completo
+            recurringRepo.delete(r);
         } else {
             r.setEndMonth(from.minusMonths(1).atDay(1));
         }
     }
-
-    // ---------- categorias ----------
 
     @Transactional(readOnly = true)
     public List<CategoryView> categories(String email) {
@@ -166,8 +209,8 @@ public class FinanceService {
     public void deleteCategory(String email, Long id) {
         FinanceCategory c = categoryRepo.findByIdAndUser(id, user(email))
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
-        repository.clearCategory(c);     // os lançamentos ficam, só perdem a categoria
-        recurringRepo.clearCategory(c);  // os fixos também
+        repository.clearCategory(c);
+        recurringRepo.clearCategory(c);
         categoryRepo.delete(c);
     }
 
@@ -198,6 +241,11 @@ public class FinanceService {
         String description = requireDescriptionOrCategory(req, category);
         LocalDate date = req.date() != null ? req.date() : t.getDate();
 
+        if (req.monthly() && t.getInstallmentGroup() != null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Uma parcela não pode virar lançamento fixo");
+        }
+
         if (req.monthly()) {
             repository.delete(t);
             RecurringTransaction r = newRecurring(user, req, category, description, date);
@@ -210,6 +258,13 @@ public class FinanceService {
         t.setDescription(description);
         t.setCategory(category);
         t.setDate(date);
+        if (t.getInstallmentGroup() != null) {
+            Integer newTotal = req.installments();
+            if (newTotal != null && !newTotal.equals(t.getInstallmentTotal())) {
+                resizeInstallments(user, t, newTotal);
+            }
+            redateInstallments(user, t, date);
+        }
         return TransactionView.of(t);
     }
 
@@ -240,21 +295,22 @@ public class FinanceService {
             return TransactionView.of(t);
         }
 
-        // continua fixo: a mudança vale deste mês em diante
+        // continua fixo: a data escolhida vira o novo início
         LocalDate fromStart = from.atDay(1);
+        LocalDate newStart = req.date() != null ? req.date().withDayOfMonth(1) : fromStart;
         int day = req.date() != null ? req.date().getDayOfMonth() : old.getDayOfMonth();
 
         RecurringTransaction target = old; // no primeiro mês, edita o próprio fixo
-        if (fromStart.isAfter(old.getStartMonth())) {
+        if (fromStart.isAfter(old.getStartMonth()) && !newStart.isBefore(fromStart)) {
             LocalDate oldEnd = old.getEndMonth();
             old.setEndMonth(from.minusMonths(1).atDay(1));
 
             target = new RecurringTransaction();
             target.setUser(user);
-            target.setStartMonth(fromStart);
             target.setEndMonth(oldEnd);
         }
 
+        target.setStartMonth(newStart);
         target.setType(req.type());
         target.setAmountCents(req.amountCents());
         target.setDescription(description);
@@ -262,7 +318,10 @@ public class FinanceService {
         target.setDayOfMonth(day);
         recurringRepo.save(target);
 
-        return TransactionView.ofRecurring(target, from.atDay(Math.min(day, from.lengthOfMonth())));
+        LocalDate shown = req.date() != null
+                ? req.date()
+                : from.atDay(Math.min(day, from.lengthOfMonth()));
+        return TransactionView.ofRecurring(target, shown);
     }
 
     private RecurringTransaction newRecurring(User user, CreateTransactionRequest req,
@@ -276,6 +335,51 @@ public class FinanceService {
         r.setDayOfMonth(date.getDayOfMonth());
         r.setStartMonth(date.withDayOfMonth(1));
         return r;
+    }
+
+    private void redateInstallments(User user, Transaction current, LocalDate date) {
+        for (Transaction x : repository.findByUserAndInstallmentGroup(user, current.getInstallmentGroup())) {
+            x.setDate(date.plusMonths(x.getInstallmentNumber() - current.getInstallmentNumber()));
+        }
+    }
+
+    private void resizeInstallments(User user, Transaction current, int newTotal) {
+        if (newTotal < current.getInstallmentNumber()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "O total não pode ser menor que a parcela atual (" + current.getInstallmentNumber() + ")");
+        }
+
+        List<Transaction> group = new ArrayList<>(
+                repository.findByUserAndInstallmentGroup(user, current.getInstallmentGroup()));
+        group.sort(Comparator.comparing(Transaction::getInstallmentNumber));
+
+        Transaction first = group.get(0);
+        Transaction last = group.get(group.size() - 1);
+        int oldTotal = last.getInstallmentNumber();
+
+        if (newTotal < oldTotal) {
+            for (Transaction x : group) {
+                if (x.getInstallmentNumber() > newTotal) repository.delete(x);
+            }
+        } else {
+            for (int i = oldTotal + 1; i <= newTotal; i++) {
+                Transaction n = new Transaction();
+                n.setUser(user);
+                n.setType(last.getType());
+                n.setAmountCents(last.getAmountCents());
+                n.setDescription(last.getDescription());
+                n.setCategory(last.getCategory());
+                n.setDate(first.getDate().plusMonths(i - 1));
+                n.setInstallmentGroup(last.getInstallmentGroup());
+                n.setInstallmentNumber(i);
+                n.setInstallmentTotal(newTotal);
+                repository.save(n);
+            }
+        }
+
+        for (Transaction x : group) {
+            if (x.getInstallmentNumber() <= newTotal) x.setInstallmentTotal(newTotal);
+        }
     }
 
     private void endSeriesBefore(RecurringTransaction r, YearMonth from) {

@@ -12,4 +12,5 @@ public record CreateTransactionRequest(
         @Size(max = 100) String description,
         Long categoryId,
         LocalDate date,
-        boolean monthly) {}
+        boolean monthly,
+        @Min(1) @Max(420) Integer installments) {}

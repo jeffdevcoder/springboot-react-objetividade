@@ -87,6 +87,7 @@ export default function Register() {
                             value={form.name}
                             onChange={update('name')}
                             required
+                            autoComplete="off"
                         />
                     </div>
 
@@ -118,11 +119,11 @@ export default function Register() {
                                 id="password"
                                 type={showPassword ? 'text' : 'password'}
                                 placeholder="Mínimo de 6 caracteres"
-                                autoComplete="new-password"
                                 value={form.password}
                                 onChange={update('password')}
                                 minLength={6}
                                 required
+                                autoComplete="off"
                             />
 
                             <button
@@ -186,6 +187,7 @@ export default function Register() {
                                 onChange={(e) => setConfirmPassword(e.target.value)}
                                 minLength={6}
                                 required
+                                autoComplete="off"
                             />
 
                             <button

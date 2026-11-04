@@ -15,7 +15,19 @@ import DonutChart from './DonutChart'
 import TransactionModal from './TransactionModal'
 import '../../styles/finance.css'
 
-const formatDay = iso => iso.split('-').reverse().slice(0, 2).join('/')
+const formatDay = iso => iso.split('-').reverse().join('/')
+
+const remainingLabel = iso => {
+    const [y, m, d] = iso.split('-').map(Number)
+    const now = new Date()
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    const days = Math.round((new Date(y, m - 1, d) - today) / 86400000)
+
+    if (days < 0) return ''
+    if (days === 0) return 'hoje'
+    if (days === 1) return '1 dia restante'
+    return `${days} dias restantes`
+}
 
 const rowKey = t => (t.id !== null ? `t${t.id}` : `r${t.recurringId}`)
 
@@ -45,7 +57,6 @@ export default function FinancePanel() {
         return () => { ignore = true }
     }, [month])
 
-    // a confirmação de excluir se desfaz sozinha em 3 segundos
     useEffect(() => {
         if (confirmId === null) return
         const timer = setTimeout(() => setConfirmId(null), 3000)
@@ -108,6 +119,11 @@ export default function FinancePanel() {
         setModalOpen(true)
     }
 
+    const progressOf = t =>
+        t.installmentTotal > 1
+            ? Math.round((t.installmentNumber / t.installmentTotal) * 100)
+            : null
+
     return (
         <section className="dashboard-panel">
             <div className="panel-header">
@@ -151,7 +167,8 @@ export default function FinancePanel() {
                 </div>
 
                 <button className="task-add" type="button" onClick={openNew}>
-                    + Lançamento
+                    <span className="task-add-icon">+</span>
+                    <span className="task-add-text"> Lançamento</span>
                 </button>
             </div>
 
@@ -167,25 +184,25 @@ export default function FinancePanel() {
                 />
 
                 <div className="fin-stats">
-                    <div className="fin-stat">
+                    <div className="fin-stats-scroll">
+                        {segments.map(s => (
+                            <div key={s.key} className="fin-stat">
                         <span className="fin-stat-label">
-                            <span className="fin-dot" style={{ background: INCOME_COLOR }} />
-                            Receitas
+                            <span className="fin-dot" style={{ background: s.color }} />
+                            {s.emoji} {s.label}
                         </span>
-                        <span className="fin-stat-value">{formatMoney(totals.income)}</span>
+                                <span className="fin-stat-value">{formatMoney(s.value)}</span>
+                            </div>
+                        ))}
                     </div>
 
-                    <div className="fin-stat">
-                        <span className="fin-stat-label">
-                            <span className="fin-dot" style={{ background: EXPENSE_COLOR }} />
-                            Gastos
-                        </span>
-                        <span className="fin-stat-value">{formatMoney(totals.expense)}</span>
-                    </div>
-
-                    <div className="fin-stat">
-                        <span className="fin-stat-label">Saldo do mês</span>
-                        <span className={`fin-stat-value ${totals.balance < 0 ? 'is-negative' : ''}`}>
+                    <div className="fin-stat fin-stat-total">
+                        <span className="fin-stat-label">Total</span>
+                        <span
+                            className={`fin-stat-value ${
+                                totals.balance > 0 ? 'is-positive' : totals.balance < 0 ? 'is-negative' : ''
+                            }`}
+                        >
                             {formatMoney(totals.balance)}
                         </span>
                     </div>
@@ -205,43 +222,55 @@ export default function FinancePanel() {
         >
             {rowVisual(t).icon}
         </span>
-
-                                <div className="fin-main">
+        <div className="fin-main">
             <span className="fin-title">
                 {t.description || (t.category ? t.category.name : t.type === 'INCOME' ? 'Receita' : 'Gasto')}
             </span>
-                                    <span className="fin-sub">
-                {t.recurringId ? '🔁 Fixo · ' : ''}
-                                        {t.category && t.description ? `${t.category.name} · ` : ''}
-                                        {formatDay(t.date)}
+            <span className="fin-sub">
+                {t.installmentTotal > 1 ? `${t.installmentNumber}/${t.installmentTotal} · ` : ''}
+                            {t.recurringId ? '🔁 Fixo · ' : ''}
+                            {t.category && t.description ? `${t.category.name} · ` : ''}
+                            {formatDay(t.date)}
+                                {remainingLabel(t.date) && (
+                                    <span className={`fin-remaining ${t.type === 'INCOME' ? 'is-income' : 'is-expense'}`}>
+                                        {' '}({remainingLabel(t.date)})
+                                    </span>)}
             </span>
-                                </div>
-
-                                <span className={`fin-amount ${t.type === 'INCOME' ? 'is-income' : 'is-expense'}`}>
+                {progressOf(t) !== null && (
+                    <span className="fin-progress">
+                        <span className="fin-bar">
+                            <span
+                                className="fin-bar-fill"
+                                style={{
+                                    width: `${progressOf(t)}%`,
+                                    background: t.type === 'INCOME' ? 'var(--fin-income-text)' : 'var(--fin-expense-text)',
+                                }}
+                            />
+                        </span>
+                    <span className="fin-progress-text">{progressOf(t)}%</span>
+                </span>
+                )}
+        </div>
+        <span className={`fin-amount ${t.type === 'INCOME' ? 'is-income' : 'is-expense'}`}>
             {t.type === 'INCOME' ? '+ ' : '− '}{formatMoney(t.amountCents)}
         </span>
-                            </button>
-
-                            <button
-                                type="button"
-                                className={`fin-del ${confirmId === rowKey(t) ? 'is-confirming' : ''}`}
-                                onClick={() => handleDelete(t)}
-                                aria-label={t.recurringId ? 'Encerrar lançamento fixo' : 'Excluir lançamento'}
-                                title={t.recurringId ? 'Encerrar este lançamento fixo a partir deste mês' : 'Excluir lançamento'}
-                            >
-                                {confirmId === rowKey(t) ? (
-                                    t.recurringId ? 'Encerrar?' : 'Excluir?'
-                                ) : (
-                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                         strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                        <path d="M3 6h18" />
-                                        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-                                        <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                                    </svg>
-                                )}
-                            </button>
-                        </li>
-                    ))}
+        </button>
+            <button
+                type="button"
+                className={`fin-del ${confirmId === rowKey(t) ? 'is-confirming' : ''}`}
+                onClick={() => handleDelete(t)}
+                aria-label={t.recurringId ? 'Encerrar lançamento fixo' : 'Excluir lançamento'}
+                title={t.installmentTotal > 1 ? 'Excluir todas as parcelas' : 'Excluir lançamento'}>
+                {confirmId === rowKey(t) ? (
+                    t.recurringId ? 'Encerrar?' : t.installmentTotal > 1 ? 'Excluir todas?' : 'Excluir?') : (
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                            <path d="M3 6h18" />
+                            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                            <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                        </svg> )}
+            </button>
+        </li> ))}
                 </ul>
             ) : (
                 <p className="fin-empty">Nenhum lançamento neste mês.</p>

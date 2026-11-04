@@ -156,6 +156,7 @@ export default function TagModal({ open, task, onClose, onAssigned }) {
                             value={name}
                             maxLength={40}
                             onChange={e => setName(limitWords(e.target.value))}
+                            autoComplete="off"
                         />
 
                         <div className="tag-swatches" role="radiogroup" aria-label="Cor da tag">
