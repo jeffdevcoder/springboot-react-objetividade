@@ -27,4 +27,15 @@ public class TagController {
     public ResponseEntity<TagView> create(@Valid @RequestBody CreateTagRequest body, Principal principal) {
         return ResponseEntity.status(HttpStatus.CREATED).body(service.create(principal.getName(), body));
     }
+
+    @PutMapping("/{id}")
+    public TagView update(@PathVariable Long id, @Valid @RequestBody CreateTagRequest body, Principal principal) {
+        return service.update(principal.getName(), id, body);
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(@PathVariable Long id, Principal principal) {
+        service.delete(principal.getName(), id);
+        return ResponseEntity.noContent().build();
+    }
 }

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../AuthContext'
 import { api } from '../api'
@@ -76,14 +76,12 @@ function overdueLabel(task, now, viewedDate) {
 
     const today = toIso(now)
 
-    // tarefas que se repetem: só ficam atrasadas no próprio dia
     if (task.recurrence !== 'ONCE') {
         if (viewedDate < today) return 'Tarefa não feita'
         if (viewedDate === today && task.time) return lateByTime(task, now)
         return null
     }
 
-    // "uma vez": continua atrasada até ser feita
     if (task.dueDate < today) {
         const days = Math.round((fromIso(today) - fromIso(task.dueDate)) / 86400000)
         return `Atrasada há ${days} ${days === 1 ? 'dia' : 'dias'}`
@@ -105,6 +103,13 @@ export default function Today() {
     const closePicker = useCallback(() => setPickerOpen(false), [])
     const [tagModal, setTagModal] = useState({ open: false, task: null })
     const closeTagModal = useCallback(() => setTagModal(m => ({ ...m, open: false })), [])
+    const [dragId, setDragId] = useState(null)
+    const [openSubs, setOpenSubs] = useState(() => new Set())
+    const listRef = useRef(null)
+    const prevTops = useRef(new Map())
+    const swapping = useRef(false)
+    const grab = useRef(0)
+    const lastY = useRef(0)
 
     const today = toIso(new Date())
     const isToday = selectedDate === today
@@ -112,6 +117,27 @@ export default function Today() {
     const [section, setSection] = useState(() =>
         localStorage.getItem('section') === 'finance' ? 'finance' : 'tasks'
     )
+
+    useLayoutEffect(() => {
+        const list = listRef.current
+        if (!list) return
+        swapping.current = false
+        placeDragged()
+
+        list.querySelectorAll('[data-task-id]').forEach(el => {
+            const id = el.dataset.taskId
+            const top = el.offsetTop
+            const prev = prevTops.current.get(id)
+
+            if (prev !== undefined && prev !== top && el.dataset.taskId !== String(dragId)) {
+                el.animate(
+                    [{ transform: `translateY(${prev - top}px)` }, { transform: 'none' }],
+                    { duration: 200, easing: 'ease' }
+                )
+            }
+            prevTops.current.set(id, top)
+        })
+    }, [tasks])
 
     const closeModal = useCallback(() => setModal(m => ({ ...m, open: false })), [])
 
@@ -139,6 +165,7 @@ export default function Today() {
     }
 
     function goTo(iso) {
+        prevTops.current.clear()
         setError('')
         setNotice('')
         setSelectedDate(iso)
@@ -146,6 +173,14 @@ export default function Today() {
 
     function handleTagAssigned(taskId, tag) {
         setTasks(list => list.map(t => (t.id === taskId ? { ...t, tag } : t)))
+    }
+
+    async function reloadTasks() {
+        try {
+            setTasks(await api(`/tasks/day?date=${selectedDate}`))
+        } catch (err) {
+            setError(err.message)
+        }
     }
 
     async function toggle(task) {
@@ -184,6 +219,110 @@ export default function Today() {
     async function handleLogout() {
         await logout()
         navigate('/login')
+    }
+
+    function toggleSubs(id) {
+        setOpenSubs(set => {
+            const next = new Set(set)
+            next.has(id) ? next.delete(id) : next.add(id)
+            return next
+        })
+    }
+
+    async function toggleSub(task, sub) {
+        const done = !sub.done
+        const mark = value =>
+            setTasks(list => list.map(t => t.id === task.id
+                ? { ...t, subtasks: t.subtasks.map(s => (s.id === sub.id ? { ...s, done: value } : s)) }
+                : t))
+
+        mark(done)
+        try {
+            await api(`/tasks/${task.id}/subtasks/${sub.id}/complete?date=${selectedDate}`, {
+                method: done ? 'POST' : 'DELETE',
+            })
+        } catch (err) {
+            mark(!done)
+            setError(err.message)
+        }
+    }
+
+    function placeDragged() {
+        const list = listRef.current
+        if (!list || dragId === null) return
+        const el = list.querySelector(`[data-task-id="${dragId}"]`)
+        if (!el) return
+        const y = lastY.current - list.getBoundingClientRect().top + list.scrollTop
+        el.style.transform = `translateY(${y - grab.current - el.offsetTop}px) scale(1.015)`
+    }
+
+    function startDrag(e, id) {
+        e.preventDefault()
+        const list = listRef.current
+        const li = e.currentTarget.closest('[data-task-id]')
+        const y = e.clientY - list.getBoundingClientRect().top + list.scrollTop
+        grab.current = y - li.offsetTop
+        lastY.current = e.clientY
+        setDragId(id)
+    }
+
+    function moveDrag(clientY) {
+        lastY.current = clientY
+        placeDragged()
+        if (swapping.current) return
+        const list = listRef.current
+        if (!list) return
+
+        const y = clientY - list.getBoundingClientRect().top + list.scrollTop
+        const els = list.querySelectorAll('[data-task-id]')
+        const from = tasks.findIndex(t => t.id === dragId)
+        if (from < 0) return
+
+        let to = from
+        if (from < tasks.length - 1) {
+            const next = els[from + 1]
+            if (y > next.offsetTop + next.offsetHeight / 2) to = from + 1
+        }
+        if (to === from && from > 0) {
+            const prev = els[from - 1]
+            if (y < prev.offsetTop + prev.offsetHeight / 2) to = from - 1
+        }
+        if (to === from) return
+
+        swapping.current = true
+
+        setTasks(list => {
+            const next = [...list]
+            const [item] = next.splice(from, 1)
+            next.splice(to, 0, item)
+            return next
+        })
+    }
+
+    useEffect(() => {
+        if (dragId === null) return
+        const onMove = e => moveDrag(e.clientY)
+        const onUp = () => endDrag()
+        window.addEventListener('pointermove', onMove)
+        window.addEventListener('pointerup', onUp)
+        window.addEventListener('pointercancel', onUp)
+        return () => {
+            window.removeEventListener('pointermove', onMove)
+            window.removeEventListener('pointerup', onUp)
+            window.removeEventListener('pointercancel', onUp)
+        }
+    })
+
+    async function endDrag() {
+        if (dragId === null) return
+        const el = listRef.current?.querySelector(`[data-task-id="${dragId}"]`)
+        if (el) el.style.transform = ''
+        setDragId(null)
+        try {
+            await api('/tasks/reorder', { method: 'PUT', body: { ids: tasks.map(t => t.id) } })
+        } catch (err) {
+            setError(err.message)
+        }
     }
 
     return (
@@ -312,8 +451,10 @@ export default function Today() {
                             className="task-add"
                             type="button"
                             onClick={() => setModal({ open: true, task: null })}
+                            aria-label="Nova tarefa"
                         >
-                            + Nova tarefa
+                            <span className="task-add-icon">+</span>
+                            <span className="task-add-text"> Nova tarefa</span>
                         </button>
                     </div>
 
@@ -321,12 +462,27 @@ export default function Today() {
                     {notice && <p className="panel-description">{notice}</p>}
 
                     {tasks.length > 0 ? (
-                        <ul className="task-list">
+                        <ul className="task-list" ref={listRef}>
                             {tasks.map(task => (
                                 <li
                                     key={task.id}
-                                    className={`task-item ${task.done ? 'is-done' : ''} ${overdueLabel(task, now, selectedDate) ? 'is-late' : ''}`}
+                                    data-task-id={task.id}
+                                    className={`task-item ${task.done ? 'is-done' : ''} ${overdueLabel(task, now, selectedDate) ? 'is-late' : ''} ${dragId === task.id ? 'is-dragging' : ''}`}
                                 >
+                                    <button
+                                        type="button"
+                                        className="task-grip"
+                                        aria-label="Arrastar para reordenar"
+                                        title="Arrastar"
+                                        onPointerDown={e => startDrag(e, task.id)}
+                                    >
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                                            <circle cx="9" cy="6" r="1.6" /><circle cx="15" cy="6" r="1.6" />
+                                            <circle cx="9" cy="12" r="1.6" /><circle cx="15" cy="12" r="1.6" />
+                                            <circle cx="9" cy="18" r="1.6" /><circle cx="15" cy="18" r="1.6" />
+                                        </svg>
+                                    </button>
+
                                     <input
                                         className="task-check"
                                         type="checkbox"
@@ -373,15 +529,53 @@ export default function Today() {
                                                 setTagModal({ open: true, task })
                                             }}
                                         >
-    <span className={`tag-text ${task.tag ? '' : 'is-placeholder'}`}>
-        {task.tag ? task.tag.name : 'Tag'}
-    </span>
+            <span className={`tag-text ${task.tag ? '' : 'is-placeholder'}`}>
+                {task.tag ? task.tag.name : 'Tag'}
+            </span>
                                             <span
                                                 className={`tag-dot ${task.tag ? '' : 'is-default'}`}
                                                 style={task.tag ? { background: tagHex(task.tag.color) } : undefined}
                                             />
                                         </button>
                                     </div>
+
+                                    {task.subtasks?.length > 0 && (() => {
+                                        const done = task.subtasks.filter(s => s.done).length
+                                        const pct = Math.round((done / task.subtasks.length) * 100)
+                                        return (
+                                            <>
+                                                <button
+                                                    type="button"
+                                                    className="task-progress"
+                                                    onClick={() => toggleSubs(task.id)}
+                                                    aria-expanded={openSubs.has(task.id)}
+                                                >
+                    <span className="task-bar">
+                        <span className="task-bar-fill" style={{ width: `${pct}%` }} />
+                    </span>
+                                                    <span className="task-progress-text">{pct}%</span>
+                                                </button>
+
+                                                {openSubs.has(task.id) && (
+                                                    <ul className="task-subs">
+                                                        {task.subtasks.map(s => (
+                                                            <li key={s.id} className={`task-sub ${s.done ? 'is-done' : ''}`}>
+                                                                <input
+                                                                    className="task-check"
+                                                                    type="checkbox"
+                                                                    checked={s.done}
+                                                                    disabled={isFuture}
+                                                                    onChange={() => toggleSub(task, s)}
+                                                                    aria-label={`Marcar "${s.title}" como feita`}
+                                                                />
+                                                                <span>{s.title}</span>
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                )}
+                                            </>
+                                        )
+                                    })()}
                                 </li>
                             ))}
                         </ul>
@@ -410,10 +604,12 @@ export default function Today() {
             <TaskModal
                 open={modal.open}
                 task={modal.task}
-                defaultDate={isFuture ? selectedDate : today}
+                defaultDate={selectedDate}
                 onClose={closeModal}
                 onSaved={handleSaved}
                 onDeleted={handleDeleted}
+                canCheck={!isFuture}
+                onToggleSub={toggleSub}
             />
 
             <TagModal
@@ -421,6 +617,7 @@ export default function Today() {
                 task={tagModal.task}
                 onClose={closeTagModal}
                 onAssigned={handleTagAssigned}
+                onChanged={reloadTasks}
             />
         </main>
     )

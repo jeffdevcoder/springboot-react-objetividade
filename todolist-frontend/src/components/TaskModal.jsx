@@ -25,7 +25,7 @@ const DAYS = [
 
 const today = () => new Date().toLocaleDateString('en-CA')
 
-export default function TaskModal({ open, task, defaultDate, onClose, onSaved, onDeleted }) {
+export default function TaskModal({ open, task, defaultDate, canCheck = true, onClose, onSaved, onDeleted, onToggleSub }) {
     const editing = Boolean(task)
     const [title, setTitle] = useState('')
     const [description, setDescription] = useState('')
@@ -41,6 +41,8 @@ export default function TaskModal({ open, task, defaultDate, onClose, onSaved, o
     const [urgent, setUrgent] = useState(false)
     const [weekdays, setWeekdays] = useState([])
     const [time, setTime] = useState('')
+    const [subtasks, setSubtasks] = useState([])
+    const [newSub, setNewSub] = useState('')
 
     if (open !== wasOpen) {
         setWasOpen(open)
@@ -56,6 +58,8 @@ export default function TaskModal({ open, task, defaultDate, onClose, onSaved, o
             setUrgent(task?.urgent ?? false)
             setWeekdays(task?.weekdays ?? [])
             setTime(task?.time ? task.time.slice(0, 5) : '')
+            setSubtasks(task?.subtasks?.map(s => ({ id: s.id, title: s.title, done: s.done })) ?? [])
+            setNewSub('')
         }
     }
 
@@ -92,6 +96,7 @@ export default function TaskModal({ open, task, defaultDate, onClose, onSaved, o
                 urgent,
                 weekdays: custom ? weekdays : [],
                 time: time || null,
+                subtasks: subtasks.map(s => ({ id: s.id, title: s.title }))
             }
             const saved = editing
                 ? await api(`/tasks/${task.id}`, { method: 'PUT', body })
@@ -130,54 +135,120 @@ export default function TaskModal({ open, task, defaultDate, onClose, onSaved, o
         (!once && !noEnd && !endDate) ||
         (custom && weekdays.length === 0)
 
+    function addSub() {
+        if (subtasks.length >= 10) return
+        const text = newSub.trim()
+        if (!text) return
+        setSubtasks(list => [...list, { id: null, title: text, done: false }])
+        setNewSub('')
+    }
+
+    function toggleSub(i) {
+        const s = subtasks[i]
+        if (!s.id) return
+        onToggleSub?.(task, s)
+        setSubtasks(list => list.map((x, idx) => (idx === i ? { ...x, done: !x.done } : x)))
+    }
+
     return (
         <div className={`task-overlay ${open ? 'is-open' : ''}`} onMouseDown={onClose}>
             <form className="task-modal" onSubmit={handleSubmit} onMouseDown={e => e.stopPropagation()}>
                 <h2>{editing ? 'Tarefa' : 'Nova tarefa'}</h2>
 
-                <input
-                    className="form-input"
-                    ref={titleRef}
-                    placeholder="Nome da tarefa"
-                    value={title}
-                    maxLength={100}
-                    onChange={e => setTitle(e.target.value)}
-                    required
-                    autoComplete="off"
-                />
-                <textarea
-                    className="form-input"
-                    placeholder="Descrição (opcional)"
-                    value={description}
-                    maxLength={500}
-                    rows={3}
-                    onChange={e => setDescription(e.target.value)}
-                />
+                <div className="task-modal-body">
+                    <input
+                        className="form-input"
+                        ref={titleRef}
+                        placeholder="Nome da tarefa"
+                        value={title}
+                        maxLength={100}
+                        onChange={e => setTitle(e.target.value)}
+                        required
+                        autoComplete="off"
+                    />
+                    <textarea
+                        className="form-input"
+                        placeholder="Descrição (opcional)"
+                        value={description}
+                        maxLength={500}
+                        rows={3}
+                        onChange={e => setDescription(e.target.value)}
+                    />
 
-                <div className="task-dates">
-                    <div>
-                        <span className="form-label">{once ? 'Data' : 'Início'}</span>
-                        <DateField
-                            value={startDate}
-                            onChange={iso => {
-                                setStartDate(iso)
-                                if (endDate && endDate < iso) setEndDate(iso)
-                            }}
-                        />
+                    <div className="task-subs-edit">
+                        <span className="form-label">Subtarefas ({subtasks.length}/10)</span>
+                        {subtasks.length < 10 && (
+                            <input
+                                className="form-input"
+                                placeholder="Adicionar subtarefa"
+                                value={newSub}
+                                maxLength={100}
+                                autoComplete="off"
+                                onChange={e => setNewSub(e.target.value)}
+                                onKeyDown={e => {
+                                    if (e.key === 'Enter') {
+                                        e.preventDefault()
+                                        addSub()
+                                    }
+                                }}
+                                onBlur={addSub}
+                            />
+                        )}
+
+                        {subtasks.map((s, i) => (
+                            <div key={s.id ?? `n${i}`} className={`task-sub task-sub-row ${s.done ? 'is-done' : ''}`}>
+                                <input
+                                    className="task-check"
+                                    type="checkbox"
+                                    checked={s.done}
+                                    disabled={!s.id || !canCheck}
+                                    onChange={() => toggleSub(i)}
+                                    aria-label={`Marcar "${s.title}" como feita`}
+                                />
+                                <span>{s.title}</span>
+                                <button
+                                    type="button"
+                                    className="task-sub-del"
+                                    aria-label="Remover subtarefa"
+                                    title="Remover subtarefa"
+                                    onClick={() => setSubtasks(list => list.filter((_, idx) => idx !== i))}
+                                >
+                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                         strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                        <path d="M3 6h18" />
+                                        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                                        <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                                        <path d="M10 11v6M14 11v6" />
+                                    </svg>
+                                </button>
+                            </div>
+                        ))}
                     </div>
 
-                    {!once && (
-                        <div className="task-fade">
-                            <span className="form-label">Fim</span>
+                    <div className="task-dates">
+                        <div>
+                            <span className="form-label">{once ? 'Data' : 'Início'}</span>
                             <DateField
-                                value={endDate}
-                                min={startDate}
-                                disabled={noEnd}
-                                align="right"
-                                onChange={setEndDate}
+                                value={startDate}
+                                onChange={iso => {
+                                    setStartDate(iso)
+                                    if (endDate && endDate < iso) setEndDate(iso)
+                                }}
                             />
                         </div>
-                    )}
+
+                        {!once && (
+                            <div className="task-fade">
+                                <span className="form-label">Fim</span>
+                                <DateField
+                                    value={endDate}
+                                    min={startDate}
+                                    disabled={noEnd}
+                                    align="right"
+                                    onChange={setEndDate}
+                                />
+                            </div>
+                        )}
                 </div>
 
                 {!once && (
@@ -260,6 +331,7 @@ export default function TaskModal({ open, task, defaultDate, onClose, onSaved, o
                 </label>
 
                 {error && <p className="task-error">{error}</p>}
+                </div>
 
                 <div className={`task-actions ${confirmDelete ? 'is-confirming' : ''}`}>
                     {editing && (
@@ -270,15 +342,15 @@ export default function TaskModal({ open, task, defaultDate, onClose, onSaved, o
                             aria-label={confirmDelete ? 'Confirmar exclusão' : 'Excluir tarefa'}
                             title="Excluir tarefa"
                         >
-    <span className="task-trash" aria-hidden="true">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-             strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M3 6h18" />
-            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-            <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-            <path d="M10 11v6M14 11v6" />
-        </svg>
-    </span>
+                        <span className="task-trash" aria-hidden="true">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                 strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M3 6h18" />
+                                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                                <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                                <path d="M10 11v6M14 11v6" />
+                            </svg>
+                        </span>
                             <span className="task-confirm-text">Tem certeza?</span>
                         </button>
                     )}

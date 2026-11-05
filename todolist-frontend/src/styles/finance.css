@@ -471,6 +471,37 @@ html[data-theme="dark"] .task-urgent input[type="checkbox"]:checked {
 .fin-remaining.is-income { color: var(--fin-income-text); }
 .fin-remaining.is-expense { color: var(--fin-expense-text); }
 
+.month-anchor { position: relative; }
+
+.month-pop { width: min(260px, 82vw); }
+
+.month-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4px;
+    margin-top: 8px;
+}
+.month-item {
+    aspect-ratio: auto;
+    height: 40px;
+    font-size: 13px;
+    font-weight: 600;
+}
+.month-item.is-current {
+    box-shadow: inset 0 0 0 1.5px var(--color-primary);
+}
+
+.fin-stat.is-clickable { cursor: pointer; transition: opacity 0.2s ease; }
+.fin-stat.is-clickable:hover .fin-stat-label { color: var(--color-text); }
+.fin-cat-modal { width: min(92vw, 420px); }
+.fin-cat-title { display: flex; align-items: center; gap: 10px; }
+.fin-cat-total {
+    margin: 0;
+    font-family: 'Manrope', sans-serif;
+    font-size: 22px;
+    font-weight: 800;
+}
+
 @media (max-width: 560px) {
     .fin-overview { flex-direction: column; align-items: stretch; gap: 22px; }
     .donut-wrap { align-self: center; width: 180px; height: 180px; }

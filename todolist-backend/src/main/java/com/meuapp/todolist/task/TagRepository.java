@@ -10,4 +10,6 @@ public interface TagRepository extends JpaRepository<Tag, Long> {
     Optional<Tag> findByIdAndUser(Long id, User user);
     boolean existsByUserAndNameIgnoreCase(User user, String name);
     boolean existsByUserAndColor(User user, String color);
+    boolean existsByUserAndNameIgnoreCaseAndIdNot(User user, String name, Long id);
+    boolean existsByUserAndColorAndIdNot(User user, String color, Long id);
 }

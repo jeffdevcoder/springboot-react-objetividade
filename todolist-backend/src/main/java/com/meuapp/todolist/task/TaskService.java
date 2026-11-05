@@ -13,6 +13,9 @@ import java.util.Comparator;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
 
 @Service
 public class TaskService {
@@ -20,11 +23,14 @@ public class TaskService {
     private final TaskRepository tasks;
     private final TaskCompletionRepository completions;
     private final UserRepository users;
+    private final SubtaskCompletionRepository subCompletions;
 
-    public TaskService(TagRepository tagRepo, TaskRepository tasks, TaskCompletionRepository completions, UserRepository users) {
+    public TaskService(TagRepository tagRepo, TaskRepository tasks, TaskCompletionRepository completions,
+                       SubtaskCompletionRepository subCompletions, UserRepository users) {
         this.tagRepo = tagRepo;
         this.tasks = tasks;
         this.completions = completions;
+        this.subCompletions = subCompletions;
         this.users = users;
     }
 
@@ -39,17 +45,16 @@ public class TaskService {
         return tasks.findByUserAndActiveTrueOrderByIdAsc(user(email)).stream()
                 .filter(t -> t.occursOn(date))
                 .filter(t -> t.getRecurrence() != Recurrence.ONCE || onceVisible(t, date, today))
-                .sorted(Comparator.comparing(Task::getTime, Comparator.nullsLast(Comparator.naturalOrder()))
+                .sorted(Comparator.comparingInt(Task::getPosition)
+                        .thenComparing(Task::getTime, Comparator.nullsLast(Comparator.naturalOrder()))
                         .thenComparing(Task::getId))
                 .map(t -> toView(t, date, completions.existsByTaskAndDate(t, date)))
                 .toList();
     }
 
     private boolean onceVisible(Task t, LocalDate date, LocalDate today) {
-        // dia futuro: só aparece no dia marcado, sem repetir a pendência
         if (date.isAfter(today)) return date.equals(t.getStartDate());
 
-        // hoje ou passado: fica pendente até o dia em que foi concluída
         return completions.findFirstByTaskAndDateGreaterThanEqualOrderByDateAsc(t, t.getStartDate())
                 .map(c -> !date.isAfter(c.getDate()))
                 .orElse(true);
@@ -92,7 +97,6 @@ public class TaskService {
         checkDates(start, end);
 
         Task task = new Task();
-        task.setUser(user(email));
         task.setTitle(req.title().trim());
         task.setDescription(req.description() == null || req.description().isBlank()
                 ? null : req.description().trim());
@@ -102,6 +106,10 @@ public class TaskService {
         task.setUrgent(req.urgent());
         applyWeekdays(task, req);
         task.setTime(req.time());
+        syncSubtasks(task, req.subtasks());
+        tasks.flush();
+        User owner = user(email);
+        task.setUser(owner);
         tasks.save(task);
         return toView(task, LocalDate.now(), false);
     }
@@ -127,6 +135,8 @@ public class TaskService {
         task.setUrgent(req.urgent());
         applyWeekdays(task, req);
         task.setTime(req.time());
+        syncSubtasks(task, req.subtasks());
+        tasks.flush();
         return toView(task, LocalDate.now(), completions.existsByTaskAndDate(task, LocalDate.now()));
     }
 
@@ -167,12 +177,98 @@ public class TaskService {
         if (t.getRecurrence() == Recurrence.CUSTOM) days.addAll(t.getWeekdays());
 
         LocalDate due = t.getRecurrence() == Recurrence.ONCE ? t.getStartDate() : date;
-
         TagView tag = t.getTag() == null ? null : TagView.of(t.getTag());
+
+        LocalDate key = subtaskDay(t, date);
+        List<SubtaskView> subs = t.getSubtasks().stream()
+                .map(s -> new SubtaskView(s.getId(), s.getTitle(),
+                        s.getId() != null && subCompletions.existsBySubtaskAndDate(s, key)))
+                .toList();
 
         return new TaskView(t.getId(), t.getTitle(), t.getDescription(), t.getRecurrence(),
                 t.getStartDate(), t.getEndDate(), t.isUrgent(), days, t.getTime(), due,
-                tag, done);
+                tag, done, subs);
+    }
+
+    private LocalDate subtaskDay(Task t, LocalDate day) {
+        return t.getRecurrence() == Recurrence.ONCE ? t.getStartDate() : day;
+    }
+
+    private void syncSubtasks(Task task, List<SubtaskInput> inputs) {
+        if (inputs == null) return;
+
+        long filled = inputs.stream().filter(i -> !i.title().trim().isEmpty()).count();
+        if (filled > 10) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Máximo de 10 subtarefas");
+        }
+
+        Map<Long, Subtask> existing = new HashMap<>();
+        for (Subtask s : task.getSubtasks()) {
+            if (s.getId() != null) existing.put(s.getId(), s);
+        }
+
+        Set<Long> keep = new HashSet<>();
+        for (SubtaskInput in : inputs) {
+            String title = in.title().trim();
+            if (title.isEmpty()) continue;
+
+            Subtask s = in.id() == null ? null : existing.get(in.id());
+            if (s == null) {
+                task.getSubtasks().add(new Subtask(task, title));
+            } else {
+                s.setTitle(title);
+                keep.add(s.getId());
+            }
+        }
+
+        List<Subtask> dropped = task.getSubtasks().stream()
+                .filter(s -> s.getId() != null && !keep.contains(s.getId()))
+                .toList();
+
+        for (Subtask s : dropped) {
+            subCompletions.deleteBySubtask(s);
+        }
+        subCompletions.flush();
+
+        task.getSubtasks().removeAll(dropped);
+    }
+
+    @Transactional
+    public void completeSubtask(String email, Long taskId, Long subId, LocalDate date) {
+        LocalDate day = date != null ? date : LocalDate.now();
+        if (day.isAfter(LocalDate.now())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Não dá para marcar um dia que ainda não chegou");
+        }
+        Task task = find(email, taskId);
+        Subtask sub = findSub(task, subId);
+        LocalDate key = subtaskDay(task, day);
+        if (!subCompletions.existsBySubtaskAndDate(sub, key)) {
+            subCompletions.save(new SubtaskCompletion(sub, key));
+        }
+    }
+
+    @Transactional
+    public void uncompleteSubtask(String email, Long taskId, Long subId, LocalDate date) {
+        LocalDate day = date != null ? date : LocalDate.now();
+        Task task = find(email, taskId);
+        subCompletions.deleteBySubtaskAndDate(findSub(task, subId), subtaskDay(task, day));
+    }
+
+    private Subtask findSub(Task task, Long subId) {
+        return task.getSubtasks().stream()
+                .filter(s -> s.getId().equals(subId))
+                .findFirst()
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+    }
+
+    @Transactional
+    public void reorder(String email, List<Long> ids) {
+        if (ids == null) return;
+        int pos = 1;
+        for (Long id : ids) {
+            find(email, id).setPosition(pos++);
+        }
     }
 
     @Transactional

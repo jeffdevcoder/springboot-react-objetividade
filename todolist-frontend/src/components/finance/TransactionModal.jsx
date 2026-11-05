@@ -55,7 +55,7 @@ export default function TransactionModal({ open, transaction, month, onClose, on
                 setType('INCOME')
                 setAmount('')
                 setDescription('')
-                setDate(today())
+                setDate(month === today().slice(0, 7) ? today() : `${month}-01`)
                 setCategoryId(null)
                 setMonthly(false)
                 setInstallments('1')
@@ -272,253 +272,255 @@ export default function TransactionModal({ open, transaction, month, onClose, on
             <form className="task-modal" onSubmit={handleSubmit} onMouseDown={e => e.stopPropagation()}>
                 <h2>{editing ? 'Editar lançamento' : 'Novo lançamento'}</h2>
 
-                <div className="task-options" role="radiogroup" aria-label="Tipo">
-                    {TYPES.map(([value, label]) => (
-                        <label key={value} className={value === 'INCOME' ? 'opt-income' : 'opt-expense'}>
-                            <input
-                                type="radio"
-                                name="fin-type"
-                                value={value}
-                                checked={type === value}
-                                onChange={() => changeType(value)}
-                                autoComplete="off"
-                            />
-                            <span>{label}</span>
-                        </label>
-                    ))}
-                </div>
-
-                <div className="fin-field">
-                    <label className="form-label" htmlFor="fin-amount">Valor (R$)</label>
-                    <input
-                        ref={amountRef}
-                        id="fin-amount"
-                        className="form-input"
-                        inputMode="numeric"
-                        placeholder="0,00"
-                        maxLength={13}
-                        value={amount}
-                        onChange={handleAmountChange}
-                        autoComplete="off"
-                    />
-                </div>
-
-                <div className="fin-field">
-                    <label className="form-label" htmlFor="fin-description">
-                        Descrição{categoryId ? ' (opcional)' : ''}
-                    </label>
-                    <input
-                        id="fin-description"
-                        className="form-input"
-                        placeholder="Ex.: Mercado"
-                        value={description}
-                        maxLength={100}
-                        onChange={e => setDescription(e.target.value)}
-                        autoComplete="off"
-                    />
-                </div>
-
-                <div className="fin-field">
-                    <span className="form-label">
-                        Categoria{description.trim() ? ' (opcional)' : ''}
-                    </span>
-
-                    <div className="cat-chips">
-                        {visible.map(c => (
-                            <div key={c.id} className="cat-item">
-                                <button
-                                    type="button"
-                                    className={`cat-chip ${categoryId === c.id ? 'is-selected' : ''}`}
-                                    style={{ '--cat': c.color }}
-                                    onClick={() => setCategoryId(id => (id === c.id ? null : c.id))}
-                                >
-                                    <span className="cat-emoji">{c.emoji}</span>
-                                    <span className="cat-name">{c.name}</span>
-                                </button>
-
-                                <button
-                                    type="button"
-                                    className="cat-edit"
-                                    aria-label={`Editar ${c.name}`}
-                                    title="Editar categoria"
-                                    onClick={() => openEdit(c)}
-                                >
-                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                         strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                        <path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
-                                    </svg>
-                                </button>
-                            </div>
-                        ))}
-
-                        <button type="button" className="cat-chip is-add" onClick={openCreate}>
-                            {editor && editor.id === null ? 'Fechar' : '+ Nova'}
-                        </button>
-                    </div>
-
-                    {editor && (
-                        <div className="cat-new task-fade">
-                            <div className="cat-new-row">
-                                <div className="cat-emoji-anchor">
-                                    <button
-                                        type="button"
-                                        className="form-input cat-emoji-btn"
-                                        onClick={() => setEmojiOpen(o => !o)}
-                                        aria-label="Escolher emoji"
-                                        aria-haspopup="dialog"
-                                        aria-expanded={emojiOpen}
-                                    >
-                                        {emoji}
-                                    </button>
-
-                                    {emojiOpen && (
-                                        <EmojiPicker
-                                            value={emoji}
-                                            onSelect={e => {
-                                                setEmoji(e)
-                                                setEmojiOpen(false)
-                                            }}
-                                            onClose={() => setEmojiOpen(false)}
-                                        />
-                                    )}
-                                </div>
-
+                <div className="task-modal-body">
+                    <div className="task-options" role="radiogroup" aria-label="Tipo">
+                        {TYPES.map(([value, label]) => (
+                            <label key={value} className={value === 'INCOME' ? 'opt-income' : 'opt-expense'}>
                                 <input
-                                    className="form-input"
-                                    placeholder="Nome da categoria"
-                                    value={name}
-                                    maxLength={30}
-                                    onChange={e => setName(e.target.value)}
-                                    onKeyDown={e => {
-                                        if (e.key === 'Enter') {
-                                            e.preventDefault()
-                                            saveCategory()
-                                        }
-                                    }}
+                                    type="radio"
+                                    name="fin-type"
+                                    value={value}
+                                    checked={type === value}
+                                    onChange={() => changeType(value)}
                                     autoComplete="off"
                                 />
-                            </div>
+                                <span>{label}</span>
+                            </label>
+                        ))}
+                    </div>
 
-                            {freeColors.length > 0 ? (
-                                <div className="tag-swatches" role="radiogroup" aria-label="Cor da categoria">
-                                    {freeColors.map(c => (
-                                        <button
-                                            key={c.hex}
-                                            type="button"
-                                            role="radio"
-                                            aria-checked={color === c.hex}
-                                            aria-label={c.name}
-                                            title={c.name}
-                                            className={`tag-swatch ${color === c.hex ? 'is-selected' : ''}`}
-                                            style={{ background: c.hex }}
-                                            onClick={() => setColor(c.hex)}
-                                        />
-                                    ))}
-                                </div>
-                            ) : (
-                                <p className="tag-caption">
-                                    Todas as cores de {type === 'INCOME' ? 'receita' : 'gasto'} já estão em uso.
-                                </p>
-                            )}
+                    <div className="fin-field">
+                        <label className="form-label" htmlFor="fin-amount">Valor (R$)</label>
+                        <input
+                            ref={amountRef}
+                            id="fin-amount"
+                            className="form-input"
+                            inputMode="numeric"
+                            placeholder="0,00"
+                            maxLength={13}
+                            value={amount}
+                            onChange={handleAmountChange}
+                            autoComplete="off"
+                        />
+                    </div>
 
-                            <div className="cat-new-actions">
-                                {editor.id !== null && (
+                    <div className="fin-field">
+                        <label className="form-label" htmlFor="fin-description">
+                            Descrição{categoryId ? ' (opcional)' : ''}
+                        </label>
+                        <input
+                            id="fin-description"
+                            className="form-input"
+                            placeholder="Ex.: Mercado"
+                            value={description}
+                            maxLength={100}
+                            onChange={e => setDescription(e.target.value)}
+                            autoComplete="off"
+                        />
+                    </div>
+
+                    <div className="fin-field">
+                        <span className="form-label">
+                            Categoria{description.trim() ? ' (opcional)' : ''}
+                        </span>
+
+                        <div className="cat-chips">
+                            {visible.map(c => (
+                                <div key={c.id} className="cat-item">
                                     <button
                                         type="button"
-                                        className={`task-btn is-danger ${confirmDelete ? 'is-confirming' : ''}`}
-                                        onClick={deleteCategory}
-                                        aria-label={confirmDelete ? 'Confirmar exclusão' : 'Excluir categoria'}
-                                        title="Excluir categoria"
+                                        className={`cat-chip ${categoryId === c.id ? 'is-selected' : ''}`}
+                                        style={{ '--cat': c.color }}
+                                        onClick={() => setCategoryId(id => (id === c.id ? null : c.id))}
                                     >
-                                        <span className="task-trash" aria-hidden="true">
-                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                                 strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                <path d="M3 6h18" />
-                                                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-                                                <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                                                <path d="M10 11v6M14 11v6" />
-                                            </svg>
-                                        </span>
-                                        <span className="task-confirm-text">Tem certeza?</span>
+                                        <span className="cat-emoji">{c.emoji}</span>
+                                        <span className="cat-name">{c.name}</span>
                                     </button>
+
+                                    <button
+                                        type="button"
+                                        className="cat-edit"
+                                        aria-label={`Editar ${c.name}`}
+                                        title="Editar categoria"
+                                        onClick={() => openEdit(c)}
+                                    >
+                                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                             strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                            <path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            ))}
+
+                            <button type="button" className="cat-chip is-add" onClick={openCreate}>
+                                {editor && editor.id === null ? 'Fechar' : '+ Nova'}
+                            </button>
+                        </div>
+
+                        {editor && (
+                            <div className="cat-new task-fade">
+                                <div className="cat-new-row">
+                                    <div className="cat-emoji-anchor">
+                                        <button
+                                            type="button"
+                                            className="form-input cat-emoji-btn"
+                                            onClick={() => setEmojiOpen(o => !o)}
+                                            aria-label="Escolher emoji"
+                                            aria-haspopup="dialog"
+                                            aria-expanded={emojiOpen}
+                                        >
+                                            {emoji}
+                                        </button>
+
+                                        {emojiOpen && (
+                                            <EmojiPicker
+                                                value={emoji}
+                                                onSelect={e => {
+                                                    setEmoji(e)
+                                                    setEmojiOpen(false)
+                                                }}
+                                                onClose={() => setEmojiOpen(false)}
+                                            />
+                                        )}
+                                    </div>
+
+                                    <input
+                                        className="form-input"
+                                        placeholder="Nome da categoria"
+                                        value={name}
+                                        maxLength={30}
+                                        onChange={e => setName(e.target.value)}
+                                        onKeyDown={e => {
+                                            if (e.key === 'Enter') {
+                                                e.preventDefault()
+                                                saveCategory()
+                                            }
+                                        }}
+                                        autoComplete="off"
+                                    />
+                                </div>
+
+                                {freeColors.length > 0 ? (
+                                    <div className="tag-swatches" role="radiogroup" aria-label="Cor da categoria">
+                                        {freeColors.map(c => (
+                                            <button
+                                                key={c.hex}
+                                                type="button"
+                                                role="radio"
+                                                aria-checked={color === c.hex}
+                                                aria-label={c.name}
+                                                title={c.name}
+                                                className={`tag-swatch ${color === c.hex ? 'is-selected' : ''}`}
+                                                style={{ background: c.hex }}
+                                                onClick={() => setColor(c.hex)}
+                                            />
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <p className="tag-caption">
+                                        Todas as cores de {type === 'INCOME' ? 'receita' : 'gasto'} já estão em uso.
+                                    </p>
                                 )}
 
-                                <button type="button" className="task-btn" onClick={closeEditor}>
-                                    Cancelar
-                                </button>
+                                <div className="cat-new-actions">
+                                    {editor.id !== null && (
+                                        <button
+                                            type="button"
+                                            className={`task-btn is-danger ${confirmDelete ? 'is-confirming' : ''}`}
+                                            onClick={deleteCategory}
+                                            aria-label={confirmDelete ? 'Confirmar exclusão' : 'Excluir categoria'}
+                                            title="Excluir categoria"
+                                        >
+                                            <span className="task-trash" aria-hidden="true">
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                                     strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                    <path d="M3 6h18" />
+                                                    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                                                    <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                                                    <path d="M10 11v6M14 11v6" />
+                                                </svg>
+                                            </span>
+                                            <span className="task-confirm-text">Tem certeza?</span>
+                                        </button>
+                                    )}
+
+                                    <button type="button" className="task-btn" onClick={closeEditor}>
+                                        Cancelar
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="task-btn is-primary"
+                                        disabled={!name.trim() || !color || catSaving}
+                                        onClick={saveCategory}
+                                    >
+                                        {editor.id === null ? 'Criar categoria' : 'Salvar'}
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="task-dates">
+                        <div>
+                            <span className="form-label">Data</span>
+                            <DateField value={date} onChange={setDate} />
+                        </div>
+                    </div>
+
+                    {!isInstallment && (
+                        <label className="task-urgent">
+                            <input
+                                type="checkbox"
+                                checked={monthly}
+                                onChange={e => {
+                                    setMonthly(e.target.checked)
+                                    if (!e.target.checked) {
+                                        setInstallments('1')
+                                        setInstallOpen(false)
+                                    }
+                                }}
+                            />
+                            <span>🔁 {type === 'INCOME' ? 'Receita fixa mensal' : 'Gasto fixo mensal'}</span>
+                        </label>
+                    )}
+
+                    {(isInstallment || (canInstall && monthly)) && (
+                        <div className="fin-field">
+                            <span className="form-label">Parcelas</span>
+
+                            <div className="cat-emoji-anchor">
                                 <button
                                     type="button"
-                                    className="task-btn is-primary"
-                                    disabled={!name.trim() || !color || catSaving}
-                                    onClick={saveCategory}
+                                    className="form-input installment-btn"
+                                    onClick={() => setInstallOpen(o => !o)}
+                                    aria-haspopup="dialog"
+                                    aria-expanded={installOpen}
                                 >
-                                    {editor.id === null ? 'Criar categoria' : 'Salvar'}
+                                    <span>{installmentsN > 1 ? `${installmentsN}x` : 'Sem fim'}</span>
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                         strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                        <path d="M6 9l6 6 6-6" />
+                                    </svg>
                                 </button>
+
+                                {installOpen && (
+                                    <InstallmentPicker
+                                        value={installmentsN}
+                                        min={isInstallment ? transaction.installmentNumber : 2}
+                                        allowNone={!isInstallment}
+                                        onSelect={n => {
+                                            setInstallments(String(n))
+                                            setInstallOpen(false)
+                                        }}
+                                        onClose={() => setInstallOpen(false)}
+                                    />
+                                )}
                             </div>
                         </div>
                     )}
+
+                    {error && <p className="task-error">{error}</p>}
                 </div>
-
-                <div className="task-dates">
-                    <div>
-                        <span className="form-label">Data</span>
-                        <DateField value={date} onChange={setDate} />
-                    </div>
-                </div>
-
-                {!isInstallment && (
-                    <label className="task-urgent">
-                        <input
-                            type="checkbox"
-                            checked={monthly}
-                            onChange={e => {
-                                setMonthly(e.target.checked)
-                                if (!e.target.checked) {
-                                    setInstallments('1')
-                                    setInstallOpen(false)
-                                }
-                            }}
-                        />
-                        <span>🔁 {type === 'INCOME' ? 'Receita fixa mensal' : 'Gasto fixo mensal'}</span>
-                    </label>
-                )}
-
-                {(isInstallment || (canInstall && monthly)) && (
-                    <div className="fin-field">
-                        <span className="form-label">Parcelas</span>
-
-                        <div className="cat-emoji-anchor">
-                            <button
-                                type="button"
-                                className="form-input installment-btn"
-                                onClick={() => setInstallOpen(o => !o)}
-                                aria-haspopup="dialog"
-                                aria-expanded={installOpen}
-                            >
-                                <span>{installmentsN > 1 ? `${installmentsN}x` : 'Sem fim'}</span>
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                     strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                    <path d="M6 9l6 6 6-6" />
-                                </svg>
-                            </button>
-
-                            {installOpen && (
-                                <InstallmentPicker
-                                    value={installmentsN}
-                                    min={isInstallment ? transaction.installmentNumber : 2}
-                                    allowNone={!isInstallment}
-                                    onSelect={n => {
-                                        setInstallments(String(n))
-                                        setInstallOpen(false)
-                                    }}
-                                    onClose={() => setInstallOpen(false)}
-                                />
-                            )}
-                        </div>
-                    </div>
-                )}
-
-                {error && <p className="task-error">{error}</p>}
 
                 <div className="task-actions">
                     <button type="button" className="task-btn" onClick={onClose}>Cancelar</button>

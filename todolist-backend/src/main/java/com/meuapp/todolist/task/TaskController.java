@@ -75,4 +75,28 @@ public class TaskController {
             Principal principal) {
         return service.forDate(principal.getName(), date);
     }
+
+    @PutMapping("/reorder")
+    public ResponseEntity<Void> reorder(@RequestBody ReorderRequest body, Principal principal) {
+        service.reorder(principal.getName(), body.ids());
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{id}/subtasks/{subId}/complete")
+    public ResponseEntity<Void> completeSubtask(
+            @PathVariable Long id, @PathVariable Long subId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+            Principal principal) {
+        service.completeSubtask(principal.getName(), id, subId, date);
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/{id}/subtasks/{subId}/complete")
+    public ResponseEntity<Void> uncompleteSubtask(
+            @PathVariable Long id, @PathVariable Long subId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+            Principal principal) {
+        service.uncompleteSubtask(principal.getName(), id, subId, date);
+        return ResponseEntity.noContent().build();
+    }
 }

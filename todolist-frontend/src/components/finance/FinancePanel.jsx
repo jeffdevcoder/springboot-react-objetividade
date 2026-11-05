@@ -14,6 +14,7 @@ import {
 import DonutChart from './DonutChart'
 import TransactionModal from './TransactionModal'
 import '../../styles/finance.css'
+import MonthPicker from './MonthPicker'
 
 const formatDay = iso => iso.split('-').reverse().join('/')
 
@@ -31,6 +32,8 @@ const remainingLabel = iso => {
 
 const rowKey = t => (t.id !== null ? `t${t.id}` : `r${t.recurringId}`)
 
+const segKey = t => `${t.type}-${t.category ? t.category.id : 'none'}`
+
 function rowVisual(t) {
     if (t.category) return { icon: t.category.emoji, color: t.category.color }
     return t.type === 'INCOME'
@@ -45,9 +48,10 @@ export default function FinancePanel() {
     const [modalOpen, setModalOpen] = useState(false)
     const [confirmId, setConfirmId] = useState(null)
     const [editing, setEditing] = useState(null)
-
+    const [monthOpen, setMonthOpen] = useState(false)
     const currentMonth = toMonthKey(new Date())
     const isCurrent = month === currentMonth
+    const [selectedKey, setSelectedKey] = useState(null)
 
     useEffect(() => {
         let ignore = false
@@ -56,6 +60,13 @@ export default function FinancePanel() {
             .catch(err => { if (!ignore) setError(err.message) })
         return () => { ignore = true }
     }, [month])
+
+    useEffect(() => {
+        if (!selectedKey) return
+        const onKey = e => e.key === 'Escape' && setSelectedKey(null)
+        window.addEventListener('keydown', onKey)
+        return () => window.removeEventListener('keydown', onKey)
+    }, [selectedKey])
 
     useEffect(() => {
         if (confirmId === null) return
@@ -101,6 +112,9 @@ export default function FinancePanel() {
     const totals = summarize(items)
     const segments = buildSegments(items)
 
+    const openSeg = segments.find(s => s.key === selectedKey) ?? null
+    const segItems = openSeg ? items.filter(t => segKey(t) === openSeg.key) : []
+
     let hint = ''
     if (totals.income > 0) {
         const pct = Math.round((totals.expense / totals.income) * 100)
@@ -143,14 +157,29 @@ export default function FinancePanel() {
                             </svg>
                         </button>
 
-                        <button
-                            type="button"
-                            className={`date-chip ${isCurrent ? 'is-today' : ''}`}
-                            onClick={() => setMonth(currentMonth)}
-                            title="Ir para o mês atual"
-                        >
-                            {monthLabel(month)}
-                        </button>
+                        <div className="month-anchor">
+                            <button
+                                type="button"
+                                className={`date-chip ${isCurrent ? 'is-today' : ''}`}
+                                onClick={() => setMonthOpen(o => !o)}
+                                aria-haspopup="dialog"
+                                aria-expanded={monthOpen}
+                            >
+                                {monthLabel(month)}
+                            </button>
+
+                            {monthOpen && (
+                                <MonthPicker
+                                    value={month}
+                                    current={currentMonth}
+                                    onSelect={key => {
+                                        setMonth(key)
+                                        setMonthOpen(false)
+                                    }}
+                                    onClose={() => setMonthOpen(false)}
+                                />
+                            )}
+                        </div>
 
                         <button
                             type="button"
@@ -186,11 +215,23 @@ export default function FinancePanel() {
                 <div className="fin-stats">
                     <div className="fin-stats-scroll">
                         {segments.map(s => (
-                            <div key={s.key} className="fin-stat">
-                        <span className="fin-stat-label">
-                            <span className="fin-dot" style={{ background: s.color }} />
-                            {s.emoji} {s.label}
-                        </span>
+                            <div
+                                key={s.key}
+                                role="button"
+                                tabIndex={0}
+                                className="fin-stat is-clickable"
+                                onClick={() => setSelectedKey(s.key)}
+                                onKeyDown={e => {
+                                    if (e.key === 'Enter' || e.key === ' ') {
+                                        e.preventDefault()
+                                        setSelectedKey(s.key)
+                                    }
+                                }}
+                            >
+                                <span className="fin-stat-label">
+                                    <span className="fin-dot" style={{ background: s.color }} />
+                                    {s.emoji} {s.label}
+                                </span>
                                 <span className="fin-stat-value">{formatMoney(s.value)}</span>
                             </div>
                         ))}
@@ -284,6 +325,55 @@ export default function FinancePanel() {
                 onSaved={handleSaved}
                 onCategoriesChanged={refresh}
             />
+
+            <div className={`task-overlay ${openSeg ? 'is-open' : ''}`} onMouseDown={() => setSelectedKey(null)}>
+                <div className="task-modal fin-cat-modal" onMouseDown={e => e.stopPropagation()}>
+                    {openSeg && (
+                        <>
+                            <h2 className="fin-cat-title">
+                                <span className="fin-dot" style={{ background: openSeg.color }} />
+                                {openSeg.emoji} {openSeg.label}
+                            </h2>
+                            <p className="fin-cat-total">{formatMoney(openSeg.value)}</p>
+
+                            <ul className="fin-list">
+                                {segItems.map(t => (
+                                    <li key={rowKey(t)} className="fin-row">
+                                        <button
+                                            type="button"
+                                            className="fin-open"
+                                            onClick={() => {
+                                                setSelectedKey(null)
+                                                openEdit(t)
+                                            }}
+                                        >
+                                            <div className="fin-main">
+                                    <span className="fin-title">
+                                        {t.description || openSeg.label}
+                                    </span>
+                                                <span className="fin-sub">
+                                        {t.installmentTotal > 1 ? `${t.installmentNumber}/${t.installmentTotal} · ` : ''}
+                                                    {t.recurringId ? '🔁 Fixo · ' : ''}
+                                                    {formatDay(t.date)}
+                                    </span>
+                                            </div>
+                                            <span className={`fin-amount ${t.type === 'INCOME' ? 'is-income' : 'is-expense'}`}>
+                                    {t.type === 'INCOME' ? '+ ' : '− '}{formatMoney(t.amountCents)}
+                                </span>
+                                        </button>
+                                    </li>
+                                ))}
+                            </ul>
+
+                            <div className="task-actions">
+                                <button type="button" className="task-btn" onClick={() => setSelectedKey(null)}>
+                                    Fechar
+                                </button>
+                            </div>
+                        </>
+                    )}
+                </div>
+            </div>
         </section>
     )
 }

@@ -5,7 +5,8 @@ import jakarta.persistence.*;
 import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
-
+import java.util.List;
+import java.util.ArrayList;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -60,7 +61,13 @@ public class Task {
     @Column(name = "day_of_week", nullable = false, length = 10)
     private Set<DayOfWeek> weekdays = EnumSet.noneOf(DayOfWeek.class);
 
-    /** essa tarefa deve aparecer na data informada? */
+    @Column(nullable = false, columnDefinition = "integer default 0")
+    private int position = 0;
+
+    @OneToMany(mappedBy = "task", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("id ASC")
+    private List<Subtask> subtasks = new ArrayList<>();
+
     public boolean occursOn(LocalDate date) {
         if (date.isBefore(startDate)) return false;
 
@@ -100,5 +107,7 @@ public class Task {
     public void setTime(LocalTime time) { this.time = time; }
     public Tag getTag() { return tag; }
     public void setTag(Tag tag) { this.tag = tag; }
-
+    public int getPosition() { return position; }
+    public void setPosition(int position) { this.position = position; }
+    public List<Subtask> getSubtasks() { return subtasks; }
 }

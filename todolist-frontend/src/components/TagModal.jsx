@@ -8,13 +8,15 @@ function limitWords(text) {
     return words.length <= 4 ? clean : words.slice(0, 4).join(' ')
 }
 
-export default function TagModal({ open, task, onClose, onAssigned }) {
+export default function TagModal({ open, task, onClose, onAssigned, onChanged }) {
     const [tags, setTags] = useState([])
     const [mode, setMode] = useState('list')
+    const [editId, setEditId] = useState(null)
     const [name, setName] = useState('')
     const [color, setColor] = useState('')
     const [error, setError] = useState('')
     const [saving, setSaving] = useState(false)
+    const [confirmDelete, setConfirmDelete] = useState(false)
     const [wasOpen, setWasOpen] = useState(false)
     const inputRef = useRef(null)
 
@@ -22,9 +24,11 @@ export default function TagModal({ open, task, onClose, onAssigned }) {
         setWasOpen(open)
         if (open) {
             setMode('list')
+            setEditId(null)
             setName('')
             setColor('')
             setError('')
+            setConfirmDelete(false)
         }
     }
 
@@ -50,8 +54,15 @@ export default function TagModal({ open, task, onClose, onAssigned }) {
         return () => clearTimeout(timer)
     }, [open, mode])
 
-    const used = new Set(tags.map(t => t.color))
+    useEffect(() => {
+        if (!confirmDelete) return
+        const timer = setTimeout(() => setConfirmDelete(false), 4000)
+        return () => clearTimeout(timer)
+    }, [confirmDelete])
+
+    const used = new Set(tags.filter(t => t.id !== editId).map(t => t.color))
     const freeColors = TAG_COLORS.filter(c => c.hex && !used.has(c.key))
+    const editing = editId !== null
 
     async function assign(tagId, tag) {
         setError('')
@@ -65,28 +76,53 @@ export default function TagModal({ open, task, onClose, onAssigned }) {
     }
 
     function startCreate() {
+        setEditId(null)
         setName('')
         setColor(freeColors[0]?.key ?? '')
         setError('')
+        setConfirmDelete(false)
         setMode('create')
     }
 
-    async function handleCreate(e) {
+    function startEdit(tag) {
+        setEditId(tag.id)
+        setName(tag.name)
+        setColor(tag.color)
+        setError('')
+        setConfirmDelete(false)
+        setMode('create')
+    }
+
+    function backToList() {
+        setMode('list')
+        setEditId(null)
+        setError('')
+        setConfirmDelete(false)
+    }
+
+    async function handleSubmit(e) {
         e.preventDefault()
         setError('')
 
         const clean = name.trim().replace(/\s+/g, ' ')
-        if (tags.some(t => t.name.toLowerCase() === clean.toLowerCase())) {
+        if (tags.some(t => t.id !== editId && t.name.toLowerCase() === clean.toLowerCase())) {
             setError('Já existe uma tag com esse nome')
             return
         }
 
         setSaving(true)
         try {
-            const created = await api('/tags', { method: 'POST', body: { name: clean, color } })
-            await api(`/tasks/${task.id}/tag`, { method: 'PATCH', body: { tagId: created.id } })
-            onAssigned(task.id, created)
-            onClose()
+            if (editing) {
+                const updated = await api(`/tags/${editId}`, { method: 'PUT', body: { name: clean, color } })
+                setTags(list => list.map(t => (t.id === updated.id ? updated : t)))
+                onChanged?.()
+                backToList()
+            } else {
+                const created = await api('/tags', { method: 'POST', body: { name: clean, color } })
+                await api(`/tasks/${task.id}/tag`, { method: 'PATCH', body: { tagId: created.id } })
+                onAssigned(task.id, created)
+                onClose()
+            }
         } catch (err) {
             setError(err.message)
         } finally {
@@ -94,8 +130,22 @@ export default function TagModal({ open, task, onClose, onAssigned }) {
         }
     }
 
+    async function handleDelete() {
+        if (!confirmDelete) {
+            setConfirmDelete(true)
+            return
+        }
+        try {
+            await api(`/tags/${editId}`, { method: 'DELETE' })
+            setTags(list => list.filter(t => t.id !== editId))
+            onChanged?.()
+            backToList()
+        } catch (err) {
+            setError(err.message)
+        }
+    }
+
     const currentId = task?.tag?.id ?? null
-    const selectedColor = TAG_COLORS.find(c => c.key === color)
 
     return (
         <div className={`task-overlay ${open ? 'is-open' : ''}`} onMouseDown={onClose}>
@@ -117,7 +167,7 @@ export default function TagModal({ open, task, onClose, onAssigned }) {
                             </li>
 
                             {tags.map(tag => (
-                                <li key={tag.id}>
+                                <li key={tag.id} className="tag-row">
                                     <button
                                         type="button"
                                         className={`tag-option ${currentId === tag.id ? 'is-selected' : ''}`}
@@ -125,6 +175,19 @@ export default function TagModal({ open, task, onClose, onAssigned }) {
                                     >
                                         <span className="tag-dot" style={{ background: tagHex(tag.color) }} />
                                         <span className="tag-option-name">{tag.name}</span>
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        className="tag-edit"
+                                        aria-label={`Editar ${tag.name}`}
+                                        title="Editar tag"
+                                        onClick={() => startEdit(tag)}
+                                    >
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                             strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                            <path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
+                                        </svg>
                                     </button>
                                 </li>
                             ))}
@@ -146,8 +209,8 @@ export default function TagModal({ open, task, onClose, onAssigned }) {
                         )}
                     </>
                 ) : (
-                    <form className="tag-form" onSubmit={handleCreate}>
-                        <h2>Nova tag</h2>
+                    <form className="tag-form" onSubmit={handleSubmit}>
+                        <h2>{editing ? 'Editar tag' : 'Nova tag'}</h2>
 
                         <input
                             ref={inputRef}
@@ -174,12 +237,32 @@ export default function TagModal({ open, task, onClose, onAssigned }) {
                                 />
                             ))}
                         </div>
-                        <p className="tag-caption">{selectedColor?.name}</p>
 
                         {error && <p className="task-error">{error}</p>}
 
                         <div className="task-actions">
-                            <button type="button" className="task-btn" onClick={() => setMode('list')}>
+                            {editing && (
+                                <button
+                                    type="button"
+                                    className={`task-btn is-danger ${confirmDelete ? 'is-confirming' : ''}`}
+                                    onClick={handleDelete}
+                                    aria-label={confirmDelete ? 'Confirmar exclusão' : 'Excluir tag'}
+                                    title="Excluir tag"
+                                >
+                                    <span className="task-trash" aria-hidden="true">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                             strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                            <path d="M3 6h18" />
+                                            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                                            <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                                            <path d="M10 11v6M14 11v6" />
+                                        </svg>
+                                    </span>
+                                    <span className="task-confirm-text">Tem certeza?</span>
+                                </button>
+                            )}
+
+                            <button type="button" className="task-btn" onClick={backToList}>
                                 Voltar
                             </button>
                             <button
