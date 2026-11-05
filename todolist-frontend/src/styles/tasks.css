@@ -49,6 +49,7 @@
     cursor: pointer;
     transition: background 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
 }
+
 .task-check:hover { border-color: var(--tk-accent); }
 .task-check:active { transform: scale(0.9); }
 .task-check:checked {
@@ -81,7 +82,6 @@
 
 .task-error { color: #c0392b; font-size: 0.9rem; }
 
-/* pop-up */
 .task-overlay {
     position: fixed;
     inset: 0;
@@ -817,6 +817,59 @@ html[data-theme="dark"] .task-overlay .task-noend input[type="checkbox"]:checked
     overscroll-behavior: contain;
     scrollbar-width: thin;
     padding-right: 4px;
+}
+
+.task-sub-grip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 1rem;
+    height: 1.6rem;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    opacity: 0.3;
+    cursor: grab;
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
+}
+.task-sub-grip:hover { opacity: 0.7; }
+
+.task-sub-input {
+    flex: 1;
+    min-width: 0;
+    padding: 2px 0;
+    border: 0;
+    border-bottom: 1px solid transparent;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    outline: none;
+    transition: border-color 0.15s ease;
+}
+.task-modal .task-sub-input,
+.task-modal .task-sub-input:focus,
+.task-modal .task-sub-input:focus-visible {
+    outline: none;
+    box-shadow: none;
+    border-top-color: transparent;
+    border-left-color: transparent;
+    border-right-color: transparent;
+    border-radius: 0;
+    background: transparent;
+}
+
+.task-modal .task-sub-input:focus {
+    border-bottom-color: color-mix(in srgb, currentColor 30%, transparent);
+}
+.task-sub.is-done .task-sub-input { text-decoration: line-through; }
+
+.task-sub-row.is-dragging {
+    background: color-mix(in srgb, currentColor 6%, transparent);
+    border-radius: 8px;
 }
 
 @media (max-width: 560px) {

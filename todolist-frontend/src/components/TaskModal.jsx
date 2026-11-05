@@ -43,6 +43,8 @@ export default function TaskModal({ open, task, defaultDate, canCheck = true, on
     const [time, setTime] = useState('')
     const [subtasks, setSubtasks] = useState([])
     const [newSub, setNewSub] = useState('')
+    const [dragKey, setDragKey] = useState(null)
+    const subKey = useRef(0)
 
     if (open !== wasOpen) {
         setWasOpen(open)
@@ -58,7 +60,7 @@ export default function TaskModal({ open, task, defaultDate, canCheck = true, on
             setUrgent(task?.urgent ?? false)
             setWeekdays(task?.weekdays ?? [])
             setTime(task?.time ? task.time.slice(0, 5) : '')
-            setSubtasks(task?.subtasks?.map(s => ({ id: s.id, title: s.title, done: s.done })) ?? [])
+            setSubtasks(task?.subtasks?.map(s => ({ key: `s${s.id}`, id: s.id, title: s.title, done: s.done })) ?? [])
             setNewSub('')
         }
     }
@@ -139,7 +141,7 @@ export default function TaskModal({ open, task, defaultDate, canCheck = true, on
         if (subtasks.length >= 10) return
         const text = newSub.trim()
         if (!text) return
-        setSubtasks(list => [...list, { id: null, title: text, done: false }])
+        setSubtasks(list => [...list, { key: `n${subKey.current++}`, id: null, title: text, done: false }])
         setNewSub('')
     }
 
@@ -149,6 +151,40 @@ export default function TaskModal({ open, task, defaultDate, canCheck = true, on
         onToggleSub?.(task, s)
         setSubtasks(list => list.map((x, idx) => (idx === i ? { ...x, done: !x.done } : x)))
     }
+
+    function editSub(i, title) {
+        setSubtasks(list => list.map((x, idx) => (idx === i ? { ...x, title } : x)))
+    }
+
+    useEffect(() => {
+        if (dragKey === null) return
+
+        const onMove = e => {
+            const el = document.elementFromPoint(e.clientX, e.clientY)?.closest('[data-sub-key]')
+            if (!el || el.dataset.subKey === dragKey) return
+            const over = el.dataset.subKey
+
+            setSubtasks(list => {
+                const from = list.findIndex(x => x.key === dragKey)
+                const to = list.findIndex(x => x.key === over)
+                if (from < 0 || to < 0) return list
+                const next = [...list]
+                const [item] = next.splice(from, 1)
+                next.splice(to, 0, item)
+                return next
+            })
+        }
+        const onUp = () => setDragKey(null)
+
+        window.addEventListener('pointermove', onMove)
+        window.addEventListener('pointerup', onUp)
+        window.addEventListener('pointercancel', onUp)
+        return () => {
+            window.removeEventListener('pointermove', onMove)
+            window.removeEventListener('pointerup', onUp)
+            window.removeEventListener('pointercancel', onUp)
+        }
+    }, [dragKey])
 
     return (
         <div className={`task-overlay ${open ? 'is-open' : ''}`} onMouseDown={onClose}>
@@ -196,7 +232,28 @@ export default function TaskModal({ open, task, defaultDate, canCheck = true, on
                         )}
 
                         {subtasks.map((s, i) => (
-                            <div key={s.id ?? `n${i}`} className={`task-sub task-sub-row ${s.done ? 'is-done' : ''}`}>
+                            <div
+                                key={s.key}
+                                data-sub-key={s.key}
+                                className={`task-sub task-sub-row ${s.done ? 'is-done' : ''} ${dragKey === s.key ? 'is-dragging' : ''}`}
+                            >
+                                <button
+                                    type="button"
+                                    className="task-sub-grip"
+                                    aria-label="Arrastar subtarefa"
+                                    title="Arrastar"
+                                    onPointerDown={e => {
+                                        e.preventDefault()
+                                        setDragKey(s.key)
+                                    }}
+                                >
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                                        <circle cx="9" cy="6" r="1.6" /><circle cx="15" cy="6" r="1.6" />
+                                        <circle cx="9" cy="12" r="1.6" /><circle cx="15" cy="12" r="1.6" />
+                                        <circle cx="9" cy="18" r="1.6" /><circle cx="15" cy="18" r="1.6" />
+                                    </svg>
+                                </button>
+
                                 <input
                                     className="task-check"
                                     type="checkbox"
@@ -205,7 +262,15 @@ export default function TaskModal({ open, task, defaultDate, canCheck = true, on
                                     onChange={() => toggleSub(i)}
                                     aria-label={`Marcar "${s.title}" como feita`}
                                 />
-                                <span>{s.title}</span>
+
+                                <input
+                                    className="task-sub-input"
+                                    value={s.title}
+                                    maxLength={100}
+                                    autoComplete="off"
+                                    onChange={e => editSub(i, e.target.value)}
+                                />
+
                                 <button
                                     type="button"
                                     className="task-sub-del"
