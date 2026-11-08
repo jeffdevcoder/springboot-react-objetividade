@@ -59,7 +59,7 @@ org.h2.message.DbException: Error while creating file "/home/jeff/Área de traba
 	at org.springframework.boot.SpringApplication.run(SpringApplication.java:321)
 	at org.springframework.boot.SpringApplication.run(SpringApplication.java:1365)
 	at org.springframework.boot.SpringApplication.run(SpringApplication.java:1354)
-	at com.meuapp.todolist.TodolistApplication.main(TodolistApplication.java:10)
+	at com.meuapp.objetividade.TodolistApplication.main(TodolistApplication.java:10)
 Caused by: org.h2.jdbc.JdbcSQLNonTransientException: Error while creating file "/home/jeff/Área de trabalho/Projetos/todolist/data (a file with this name already exists)" [90062-240]
 	at org.h2.message.DbException.getJdbcSQLException(DbException.java:566)
 	at org.h2.message.DbException.getJdbcSQLException(DbException.java:489)

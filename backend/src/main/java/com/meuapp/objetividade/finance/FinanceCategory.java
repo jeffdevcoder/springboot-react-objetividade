@@ -1,0 +1,51 @@
+package com.meuapp.objetividade.finance;
+
+import com.meuapp.objetividade.user.User;
+import jakarta.persistence.*;
+import org.hibernate.annotations.ColumnDefault;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
+@Entity
+@Table(name = "finance_categories", uniqueConstraints = {
+        @UniqueConstraint(columnNames = {"user_id", "name"}),
+        @UniqueConstraint(columnNames = {"user_id", "color"})
+})
+
+public class FinanceCategory {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @ManyToOne(optional = false, fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
+    private User user;
+
+    @Column(nullable = false, length = 30)
+    private String name;
+
+    @Column(nullable = false, length = 16)
+    private String emoji;
+
+    @Column(nullable = false, length = 7)
+    private String color;
+
+    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.VARCHAR)
+    @ColumnDefault("'EXPENSE'")
+    @Column(name = "kind", nullable = false, length = 10)
+    private TransactionType type = TransactionType.EXPENSE;
+
+    public Long getId() { return id; }
+    public User getUser() { return user; }
+    public void setUser(User user) { this.user = user; }
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
+    public String getEmoji() { return emoji; }
+    public void setEmoji(String emoji) { this.emoji = emoji; }
+    public String getColor() { return color; }
+    public void setColor(String color) { this.color = color; }
+    public TransactionType getType() { return type; }
+    public void setType(TransactionType type) { this.type = type; }
+}
