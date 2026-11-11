@@ -22,14 +22,14 @@
 html[data-theme='dark'] {
     color-scheme: dark;
     color: #ecede6;
-    background: #121310;
+    background: #000000;
 
     /* variáveis do auth.css */
-    --color-bg: #121310;
-    --color-surface: #1a1b18;
+    --color-bg: #000000;
+    --color-surface: #0a0a0a;
     --color-text: #ecede6;
     --color-muted: #9b9d93;
-    --color-border: #2c2e28;
+    --color-border: #262626;
     --color-primary: #ecede6;
     --color-primary-hover: #ffffff;
     --color-error: #f08a8a;
@@ -37,7 +37,7 @@ html[data-theme='dark'] {
     /* cores que estão fixas no auth.css */
     & .auth-page {
         background:
-                radial-gradient(ellipse at 50% 0%, #1d1e19 0%, transparent 55%),
+                radial-gradient(ellipse at 50% 0%, #111111 0%, transparent 55%),
                 var(--color-bg);
     }
     & .brand-mark { background: var(--color-accent); color: #20211f; }
@@ -47,10 +47,10 @@ html[data-theme='dark'] {
     & .form-label { color: #d9dbd1; }
     & .date-chip.is-today { background: #ffffff; color: #000000; }
 
-    & .form-input { background: #141512; }
+    & .form-input { background: #000000; }
     & .form-input::placeholder { color: #70726a; }
-    & .form-input:hover { border-color: #4a4c44; }
-    & .form-input:focus { background: #181915; border-color: #9aa17f; }
+    & .form-input:hover { border-color: #404040; }
+    & .form-input:focus { background: #050505; border-color: #9aa17f; }
 
     & .primary-button { color: #20211f; }
     & .auth-error {
@@ -62,12 +62,12 @@ html[data-theme='dark'] {
     & .auth-legal,
     & .dashboard-footer { color: #7d7f76; }
 
-    & .dashboard-header { background: rgba(26, 27, 24, 0.8); }
+    & .dashboard-header { background: rgba(0, 0, 0, 0.8); }
     & .user-email { color: #a3a59b; }
     & .logout-button { background: transparent; color: #d9dbd1; }
-    & .logout-button:hover { background: #22231f; border-color: #4a4c44; }
+    & .logout-button:hover { background: #161616; border-color: #404040; }
     & .dashboard-panel { background: var(--color-surface); box-shadow: none; }
-    & .empty-icon { background: #25271f; color: #b7c28f; }
+    & .empty-icon { background: #161616; color: #b7c28f; }
 
     /* tarefas e pop-up */
     & .dashboard,

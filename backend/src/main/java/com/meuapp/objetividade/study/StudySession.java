@@ -26,6 +26,9 @@ public class StudySession {
     @Column(name = "duration_seconds", nullable = false)
     private int seconds;
 
+    @Column(length = 120)
+    private String description;
+
     public Long getId() { return id; }
     public User getUser() { return user; }
     public void setUser(User user) { this.user = user; }
@@ -35,4 +38,6 @@ public class StudySession {
     public void setDate(LocalDate date) { this.date = date; }
     public int getSeconds() { return seconds; }
     public void setSeconds(int seconds) { this.seconds = seconds; }
+    public String getDescription() { return description; }
+    public void setDescription(String description) { this.description = description; }
 }

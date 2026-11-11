@@ -19,8 +19,8 @@ export default function App() {
               <Routes>
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
-                <Route path="/today" element={<PrivateRoute><Today /></PrivateRoute>} />
-                <Route path="*" element={<Navigate to="/today" replace />} />
+                <Route path="/home" element={<PrivateRoute><Today /></PrivateRoute>} />
+                <Route path="*" element={<Navigate to="/home" replace />} />
               </Routes>
             </BrowserRouter>
           </AuthProvider>

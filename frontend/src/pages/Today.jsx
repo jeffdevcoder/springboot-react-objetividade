@@ -9,7 +9,10 @@ import TagModal from '../components/TagModal'
 import { tagHex } from '../tagColors'
 import FinancePanel from '../components/finance/FinancePanel.jsx'
 import StudyPanel from '../components/study/StudyPanel.jsx'
+import NotesPanel from '../components/notes/NotesPanel.jsx'
 import UserMenu from '../components/UserMenu'
+import EmojiPicker from '../components/EmojiPicker'
+import { TASK_EMOJI_GROUPS, TASK_EMOJI_PLACEHOLDER } from '../emojis'
 
 const LABELS = {
     ONCE: 'Uma vez',
@@ -99,6 +102,8 @@ export default function Today() {
     const [pickerOpen, setPickerOpen] = useState(false)
     const closePicker = useCallback(() => setPickerOpen(false), [])
     const [tagModal, setTagModal] = useState({ open: false, task: null })
+    const [emojiFor, setEmojiFor] = useState(null)
+    const closeEmoji = useCallback(() => setEmojiFor(null), [])
     const closeTagModal = useCallback(() => setTagModal(m => ({ ...m, open: false })), [])
     const [dragId, setDragId] = useState(null)
     const [openSubs, setOpenSubs] = useState(() => new Set())
@@ -113,7 +118,7 @@ export default function Today() {
     const isFuture = selectedDate > today
     const [section, setSection] = useState(() => {
         const saved = localStorage.getItem('section')
-        return saved === 'finance' || saved === 'study' ? saved : 'tasks'
+        return ['finance', 'study', 'notes'].includes(saved) ? saved : 'tasks'
     })
 
     useLayoutEffect(() => {
@@ -171,6 +176,19 @@ export default function Today() {
 
     function handleTagAssigned(taskId, tag) {
         setTasks(list => list.map(t => (t.id === taskId ? { ...t, tag } : t)))
+    }
+
+    async function saveEmoji(task, emoji) {
+        const old = task.emoji
+        const set = value => setTasks(list => list.map(t => (t.id === task.id ? { ...t, emoji: value } : t)))
+        set(emoji)
+        setEmojiFor(null)
+        try {
+            await api(`/tasks/${task.id}/emoji`, { method: 'PATCH', body: { emoji } })
+        } catch (err) {
+            set(old)
+            setError(err.message)
+        }
     }
 
     async function reloadTasks() {
@@ -326,7 +344,7 @@ export default function Today() {
     return (
         <main className="dashboard">
             <header className="dashboard-header">
-                <a href="/today" className="brand">
+                <a href="/home" className="brand">
                     <Logo />
                     <span>Objetividade</span>
                 </a>
@@ -345,7 +363,9 @@ export default function Today() {
                             ? 'Suas finanças.'
                             : section === 'study'
                                 ? 'Seus estudos.'
-                                : isToday ? 'Checklist de hoje.' : 'Checklist do dia.'}
+                                : section === 'notes'
+                                    ? 'Suas anotações.'
+                                    : isToday ? 'Checklist de hoje.' : 'Checklist do dia.'}
                     </h1>
 
                     <p className="dashboard-subtitle">
@@ -353,7 +373,9 @@ export default function Today() {
                             ? 'Receitas, gastos e saldo do mês, num só lugar.'
                             : section === 'study'
                                 ? 'Foque, registre e acompanhe suas horas por matéria.'
-                                : 'Um passo de cada vez. Organize o que importa e mantenha o foco no seu dia.'}
+                                : section === 'notes'
+                                    ? 'Ideias, lembretes e datas importantes, sem perder nada de vista.'
+                                    : 'Um passo de cada vez. Organize o que importa e mantenha o foco no seu dia.'}
                     </p>
                 </div>
 
@@ -384,6 +406,15 @@ export default function Today() {
                         onClick={() => chooseSection('study')}
                     >
                         Estudos
+                    </button>
+                    <button
+                        type="button"
+                        role="tab"
+                        aria-selected={section === 'notes'}
+                        className={`section-tab ${section === 'notes' ? 'is-active' : ''}`}
+                        onClick={() => chooseSection('notes')}
+                    >
+                        Anotações
                     </button>
                 </div>
 
@@ -488,6 +519,31 @@ export default function Today() {
                                         aria-label={`Marcar "${task.title}" como feita`}
                                     />
 
+                                    <div className="task-emoji-anchor">
+                                        <button
+                                            type="button"
+                                            className="task-emoji"
+                                            aria-label={task.emoji ? 'Trocar emoji' : 'Escolher emoji'}
+                                            title={task.emoji ? 'Trocar emoji' : 'Escolher emoji'}
+                                            aria-haspopup="dialog"
+                                            aria-expanded={emojiFor === task.id}
+                                            onClick={() => setEmojiFor(id => (id === task.id ? null : task.id))}
+                                        >
+                                            <span className={task.emoji ? '' : 'emoji-empty'}>
+                                                {task.emoji || TASK_EMOJI_PLACEHOLDER}
+                                            </span>
+                                        </button>
+
+                                        {emojiFor === task.id && (
+                                            <EmojiPicker
+                                                groups={TASK_EMOJI_GROUPS}
+                                                value={task.emoji}
+                                                onSave={e => saveEmoji(task, e)}
+                                                onClose={closeEmoji}
+                                            />
+                                        )}
+                                    </div>
+
                                     <button
                                         className="task-body"
                                         type="button"
@@ -591,6 +647,8 @@ export default function Today() {
                 </section>
                 ) : section === 'finance' ? (
                     <FinancePanel />
+                ) : section === 'notes' ? (
+                    <NotesPanel />
                 ) : (
                     <StudyPanel />
                 )}

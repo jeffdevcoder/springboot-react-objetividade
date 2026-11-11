@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../AuthContext'
 import { api } from '../api'
+import AvatarCarousel from './AvatarCarousel'
 
 export default function AccountModal({ open, onClose }) {
     const { user, updateUser } = useAuth()
     const [name, setName] = useState('')
+    const [avatar, setAvatar] = useState(null)
     const [email, setEmail] = useState('')
     const [emailPwd, setEmailPwd] = useState('')
     const [curPwd, setCurPwd] = useState('')
@@ -17,6 +19,7 @@ export default function AccountModal({ open, onClose }) {
         setWasOpen(open)
         if (open) {
             setName(user?.name ?? '')
+            setAvatar(user?.avatar ?? null)
             setEmail(user?.email ?? '')
             setEmailPwd('')
             setCurPwd('')
@@ -50,6 +53,11 @@ export default function AccountModal({ open, onClose }) {
         }
     }
 
+    const saveAvatar = async () => {
+        const data = await api('/auth/avatar', { method: 'PUT', body: { avatar } })
+        updateUser(data)
+    }
+
     const saveName = async () => {
         const data = await api('/auth/profile', { method: 'PUT', body: { name: name.trim() } })
         updateUser(data)
@@ -79,6 +87,7 @@ export default function AccountModal({ open, onClose }) {
             <p className={`account-msg ${status.ok ? '' : 'is-error'}`}>{status.text}</p>
         ) : null
 
+    const avatarChanged = avatar !== (user?.avatar ?? null)
     const nameChanged = name.trim() && name.trim() !== user?.name
     const emailChanged = email.trim() && email.trim().toLowerCase() !== user?.email
 
@@ -88,9 +97,21 @@ export default function AccountModal({ open, onClose }) {
                 <h2>Configurações de conta</h2>
 
                 <div className="task-modal-body">
-                    <div className="account-avatar" aria-hidden="true">
-                        {user?.name?.charAt(0).toUpperCase()}
-                    </div>
+                    <form
+                        className="account-section account-avatar-section"
+                        onSubmit={e => { e.preventDefault(); run('avatar', saveAvatar) }}
+                    >
+                        <span className="form-label">Foto de perfil</span>
+                        {open && <AvatarCarousel user={user} value={avatar} onChange={setAvatar} />}
+                        <button
+                            type="submit"
+                            className={`task-btn is-primary account-avatar-save ${avatarChanged ? '' : 'is-hidden'}`}
+                            disabled={!avatarChanged || busy === 'avatar'}
+                        >
+                            Salvar
+                        </button>
+                        {message('avatar')}
+                    </form>
 
                     <form
                         className="account-section"

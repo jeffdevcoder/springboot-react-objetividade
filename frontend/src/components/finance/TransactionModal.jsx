@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { api } from '../../api'
-import { MAX_AMOUNT_CENTS, formatMoney, maskMoney, paletteFor, parseMoney } from '../../finance'
+import { EMOJI_GROUPS, MAX_AMOUNT_CENTS, formatMoney, maskMoney, paletteFor, parseMoney } from '../../finance'
 import DateField from '../DateField'
-import EmojiPicker from './EmojiPicker'
+import EmojiPicker from '../EmojiPicker'
 import InstallmentPicker from './InstallmentPicker'
 
 const TYPES = [
@@ -374,6 +374,7 @@ export default function TransactionModal({ open, transaction, month, onClose, on
 
                                         {emojiOpen && (
                                             <EmojiPicker
+                                                groups={EMOJI_GROUPS}
                                                 value={emoji}
                                                 onSelect={e => {
                                                     setEmoji(e)

@@ -23,6 +23,12 @@
 .section-tab:hover { color: var(--color-text); }
 .section-tab.is-active { background: var(--color-primary); color: var(--color-bg); }
 
+@media (max-width: 480px) {
+    .section-tabs { max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+    .section-tabs::-webkit-scrollbar { display: none; }
+    .section-tab { flex-shrink: 0; padding: 8px 10px; font-size: 12px; }
+}
+
 /* cores de texto dos valores (mais escuras no claro, mais claras no noturno) */
 .dashboard {
     --fin-income-text: #059669;
@@ -250,62 +256,6 @@ html[data-theme='dark'] .fin-del.is-confirming { background: #ffffff; color: #00
 .cat-edit:hover { opacity: 1; background: color-mix(in srgb, currentColor 10%, transparent); }
 
 /* menu de emojis */
-.emoji-pop {
-    position: absolute;
-    top: calc(100% + 8px);
-    left: 0;
-    z-index: 30;
-    width: min(320px, 82vw);
-    padding: 12px;
-    border: 1px solid var(--color-border);
-    border-radius: 16px;
-    background: var(--color-surface);
-    color: var(--color-text);
-    box-shadow: 0 14px 40px rgba(0, 0, 0, 0.14);
-    animation: calendar-in-flat 0.2s ease both;
-}
-.emoji-tabs {
-    display: flex;
-    gap: 2px;
-    padding-bottom: 8px;
-    border-bottom: 1px solid var(--color-border);
-}
-.emoji-tab {
-    flex: 1;
-    height: 32px;
-    border: 0;
-    border-radius: 8px;
-    background: transparent;
-    font-size: 16px;
-    opacity: 0.5;
-    cursor: pointer;
-    transition: opacity 0.15s ease, background 0.15s ease;
-}
-.emoji-tab:hover { opacity: 1; }
-.emoji-tab.is-active { opacity: 1; background: color-mix(in srgb, currentColor 10%, transparent); }
-.emoji-group-name {
-    margin: 10px 2px 6px;
-    color: var(--color-muted);
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 1.5px;
-    text-transform: uppercase;
-}
-.emoji-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 2px; }
-.emoji-item {
-    aspect-ratio: 1;
-    padding: 0;
-    border: 0;
-    border-radius: 8px;
-    background: transparent;
-    font-size: 20px;
-    line-height: 1;
-    cursor: pointer;
-    transition: background 0.15s ease, transform 0.1s ease;
-}
-.emoji-item:hover { background: color-mix(in srgb, currentColor 10%, transparent); transform: scale(1.12); }
-.emoji-item.is-selected { background: color-mix(in srgb, currentColor 16%, transparent); }
-
 .donut-value,
 .donut-hint,
 .donut-label {

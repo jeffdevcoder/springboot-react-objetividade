@@ -31,6 +31,9 @@ public class Task {
     @Column(length = 500)
     private String description;
 
+    @Column(length = 16)
+    private String emoji;
+
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.VARCHAR)
     @Column(nullable = false, length = 20)
@@ -92,6 +95,8 @@ public class Task {
     public void setTitle(String title) { this.title = title; }
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
+    public String getEmoji() { return emoji; }
+    public void setEmoji(String emoji) { this.emoji = emoji; }
     public Recurrence getRecurrence() { return recurrence; }
     public void setRecurrence(Recurrence recurrence) { this.recurrence = recurrence; }
     public LocalDate getStartDate() { return startDate; }

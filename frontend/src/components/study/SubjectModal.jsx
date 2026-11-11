@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { api } from '../../api'
 import { STUDY_PALETTE } from '../../study'
-import EmojiPicker from '../finance/EmojiPicker'
+import EmojiPicker from '../EmojiPicker'
+import { STUDY_EMOJI_GROUPS } from '../../emojis'
 
 const DEFAULT_EMOJI = '📚'
 
@@ -109,6 +110,7 @@ export default function SubjectModal({ open, subject, subjects, onClose, onChang
 
                         {emojiOpen && (
                             <EmojiPicker
+                                groups={STUDY_EMOJI_GROUPS}
                                 value={emoji}
                                 onSelect={e => {
                                     setEmoji(e)

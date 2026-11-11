@@ -2,9 +2,9 @@ import { useEffect, useRef, useState } from 'react'
 import { api } from '../../api'
 
 const KEY = 'pomodoro'
-const MODES = ['focus', 'short', 'long']
-const LABELS = { focus: 'Foco', short: 'Pausa curta', long: 'Pausa longa' }
-const MIN_LABELS = { focus: 'Foco', short: 'Pausa', long: 'Longa' }
+const MODES = ['focus', 'break', 'custom']
+const LABELS = { focus: 'Foco', break: 'Pausa', custom: 'Pausa personalizada' }
+const BREAK_MIN = 5
 
 const SIZE = 220
 const STROKE = 14
@@ -15,19 +15,30 @@ const today = () => new Date().toLocaleDateString('en-CA')
 
 const initial = () => ({
     mode: 'focus',
-    cycle: 0,
     running: false,
     endAt: 0,
     remainingMs: 25 * 60000,
     startDate: null,
     subjectId: null,
-    mins: { focus: 25, short: 5, long: 15 },
+    description: '',
+    mins: { focus: 25, break: BREAK_MIN, custom: 10 },
 })
 
 function load() {
     try {
         const saved = JSON.parse(localStorage.getItem(KEY))
-        return saved && saved.mins ? saved : initial()
+        if (!saved || !saved.mins) return initial()
+        const base = initial()
+        const mins = {
+            focus: saved.mins.focus ?? base.mins.focus,
+            break: BREAK_MIN,
+            custom: saved.mins.custom ?? base.mins.custom,
+        }
+        // estado de versões antigas (pausa curta/longa) volta para o foco
+        if (!MODES.includes(saved.mode)) {
+            return { ...base, subjectId: saved.subjectId ?? null, mins, remainingMs: mins.focus * 60000 }
+        }
+        return { ...base, ...saved, mins }
     } catch {
         return initial()
     }
@@ -38,11 +49,19 @@ function clock(ms) {
     return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`
 }
 
-export default function Pomodoro({ subjects, onSaved, onManage }) {
+export default function Pomodoro({ subjects, selectId, onSaved, onManage }) {
     const [t, setT] = useState(load)
     const [now, setNow] = useState(() => Date.now())
     const [settings, setSettings] = useState(false)
     const [error, setError] = useState('')
+    const [editingDesc, setEditingDesc] = useState(false)
+    const [appliedSelect, setAppliedSelect] = useState(selectId)
+
+    // matéria recém-criada: seleciona assim que ela chega na lista (se o timer não estiver rodando)
+    if (selectId !== appliedSelect && subjects.some(s => s.id === selectId)) {
+        setAppliedSelect(selectId)
+        if (!t.running) setT(x => ({ ...x, subjectId: selectId }))
+    }
     const finishing = useRef(false)
     const audio = useRef(null)
 
@@ -54,7 +73,7 @@ export default function Pomodoro({ subjects, onSaved, onManage }) {
     const elapsed = Math.round((total - remaining) / 1000)
     const progress = total ? (total - remaining) / total : 0
     const done = t.running && remaining <= 0
-    const locked = t.mode === 'focus' && (t.running || elapsed > 0)
+    const locked = t.mode === 'focus' && t.running
     const text = clock(remaining)
 
     useEffect(() => {
@@ -73,12 +92,6 @@ export default function Pomodoro({ subjects, onSaved, onManage }) {
         document.title = `${text} · ${LABELS[t.mode]}`
         return () => { document.title = old }
     }, [t.running, t.mode, text])
-
-    useEffect(() => {
-        if (!done || finishing.current) return
-        finishing.current = true
-        finish().finally(() => { finishing.current = false })
-    }, [done])
 
     function unlockAudio() {
         try {
@@ -117,7 +130,12 @@ export default function Pomodoro({ subjects, onSaved, onManage }) {
         try {
             await api('/study/sessions', {
                 method: 'POST',
-                body: { subjectId, seconds, date: t.startDate ?? today() },
+                body: {
+                    subjectId,
+                    seconds,
+                    date: t.startDate ?? today(),
+                    description: t.description.trim() || null,
+                },
             })
             setError('')
             onSaved()
@@ -128,12 +146,15 @@ export default function Pomodoro({ subjects, onSaved, onManage }) {
         }
     }
 
-    async function goTo(mode, cycle = t.cycle) {
-        if (t.mode === 'focus' && !(await save(elapsedNow()))) return
+    async function goTo(mode) {
+        const seconds = elapsedNow()
+        const saving = t.mode === 'focus' && seconds >= 1
+        if (saving && !(await save(seconds))) return
+        setEditingDesc(false)
         setT(s => ({
             ...s,
             mode,
-            cycle,
+            description: saving ? '' : s.description,
             running: false,
             remainingMs: s.mins[mode] * 60000,
             startDate: null,
@@ -148,12 +169,7 @@ export default function Pomodoro({ subjects, onSaved, onManage }) {
     }, [done])
 
     async function finish() {
-        if (t.mode === 'focus') {
-            const cycle = t.cycle + 1
-            await goTo(cycle % 4 === 0 ? 'long' : 'short', cycle)
-        } else {
-            await goTo('focus')
-        }
+        await goTo(t.mode === 'focus' ? 'break' : 'focus')
     }
 
     function start() {
@@ -184,7 +200,6 @@ export default function Pomodoro({ subjects, onSaved, onManage }) {
         }))
     }
 
-    const filled = t.mode === 'long' ? 4 : t.cycle % 4
     const ringColor = t.mode === 'focus' ? (subject?.color ?? 'var(--color-text)') : 'var(--color-muted)'
 
     return (
@@ -222,7 +237,7 @@ export default function Pomodoro({ subjects, onSaved, onManage }) {
                 </svg>
 
                 <div className="donut-center">
-                    <span className="donut-label">{LABELS[t.mode]}</span>
+                    <span className="donut-label">{t.mode === 'custom' ? 'Pausa' : LABELS[t.mode]}</span>
                     <strong className="study-time">{text}</strong>
                     {t.mode === 'focus' && subject && (
                         <span className="donut-hint">{subject.emoji} {subject.name}</span>
@@ -230,11 +245,19 @@ export default function Pomodoro({ subjects, onSaved, onManage }) {
                 </div>
             </div>
 
-            <div className="study-dots" aria-hidden="true">
-                {[0, 1, 2, 3].map(i => (
-                    <span key={i} className={`study-dot ${i < filled ? 'is-filled' : ''}`} />
-                ))}
-            </div>
+            {t.mode === 'custom' && (
+                <label className="study-custom">
+                    <span>Duração (min)</span>
+                    <input
+                        className="form-input"
+                        inputMode="numeric"
+                        autoComplete="off"
+                        value={t.mins.custom}
+                        disabled={t.running || elapsed > 0}
+                        onChange={e => setMin('custom', e.target.value.replace(/\D/g, ''))}
+                    />
+                </label>
+            )}
 
             <div className="study-controls">
                 <button
@@ -273,21 +296,44 @@ export default function Pomodoro({ subjects, onSaved, onManage }) {
 
             {settings && (
                 <div className="study-mins task-fade">
-                    {MODES.map(m => (
-                        <label key={m}>
-                            <span>{MIN_LABELS[m]} (min)</span>
-                            <input
-                                className="form-input"
-                                inputMode="numeric"
-                                autoComplete="off"
-                                value={t.mins[m]}
-                                disabled={t.running}
-                                onChange={e => setMin(m, e.target.value.replace(/\D/g, ''))}
-                            />
-                        </label>
-                    ))}
+                    <label>
+                        <span>Foco (min)</span>
+                        <input
+                            className="form-input"
+                            inputMode="numeric"
+                            autoComplete="off"
+                            value={t.mins.focus}
+                            disabled={t.running}
+                            onChange={e => setMin('focus', e.target.value.replace(/\D/g, ''))}
+                        />
+                    </label>
                 </div>
             )}
+
+            {t.mode === 'focus' && (editingDesc ? (
+                <input
+                    className="form-input study-desc"
+                    placeholder="Descrição"
+                    maxLength={120}
+                    autoComplete="off"
+                    autoFocus
+                    value={t.description}
+                    onChange={e => setT(x => ({ ...x, description: e.target.value }))}
+                    onBlur={() => setEditingDesc(false)}
+                    onKeyDown={e => (e.key === 'Enter' || e.key === 'Escape') && setEditingDesc(false)}
+                />
+            ) : (
+                <button
+                    type="button"
+                    className={`study-desc-btn ${t.description.trim() ? 'has-text' : ''}`}
+                    onClick={() => setEditingDesc(true)}
+                    title={t.description.trim() ? 'Editar descrição' : undefined}
+                >
+                    {t.description.trim() || '+ Adicionar descrição'}
+                </button>
+            ))}
+
+            {locked && <p className="study-note">Pause para trocar de matéria</p>}
 
             <div className="cat-chips study-subjects">
                 {subjects.map(s => (

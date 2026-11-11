@@ -1,5 +1,7 @@
 package com.meuapp.objetividade.user;
 
+import java.util.Set;
+
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.http.HttpStatus;
@@ -48,6 +50,20 @@ public class UserService {
 
     public User findByEmail(String email) {
         return repository.findByEmail(email.toLowerCase()).orElseThrow();
+    }
+
+    // fotos de perfil disponíveis em frontend/public (manter igual a frontend/src/avatars.js)
+    public static final Set<String> AVATARS = Set.of(
+            "asuka.webp", "chad.jpeg", "goku.jpeg", "ichigo.jpeg", "luffy.jpeg", "nami.jpeg",
+            "naruto.jpeg", "rey.jpeg", "robin.jpg", "sailormoon.jpeg", "shinji.jpeg", "zoro.jpeg");
+
+    public User updateAvatar(String email, String avatar) {
+        User user = findByEmail(email);
+        if (avatar != null && !AVATARS.contains(avatar)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Foto de perfil inválida");
+        }
+        user.setAvatar(avatar);
+        return repository.save(user);
     }
 
     public User updateName(String email, String name) {

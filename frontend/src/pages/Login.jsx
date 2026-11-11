@@ -22,7 +22,7 @@ export default function Login() {
 
         try {
             await login(email, password)
-            navigate('/today')
+            navigate('/home')
         } catch (err) {
             setError(err.message || 'Não foi possível entrar. Tente novamente.')
         } finally {

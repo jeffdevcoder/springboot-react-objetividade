@@ -47,6 +47,13 @@ public class StudyController {
         return ResponseEntity.status(HttpStatus.CREATED).body(service.addSession(principal.getName(), body));
     }
 
+    @PatchMapping("/sessions/{id}/description")
+    public SessionView updateDescription(@PathVariable Long id,
+                                         @Valid @RequestBody SessionDescriptionRequest body,
+                                         Principal principal) {
+        return service.updateDescription(principal.getName(), id, body.description());
+    }
+
     @GetMapping("/sessions")
     public List<SessionView> sessions(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,

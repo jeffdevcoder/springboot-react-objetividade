@@ -18,6 +18,17 @@ public class User {
     @Column(nullable = false)
     private String password;
 
+    @Column(length = 64)
+    private String avatar;
+
+    public String getAvatar() {
+        return avatar;
+    }
+
+    public void setAvatar(String avatar) {
+        this.avatar = avatar;
+    }
+
     public Long getId() {
         return id;
     }

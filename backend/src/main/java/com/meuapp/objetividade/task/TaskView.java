@@ -6,7 +6,7 @@ import java.time.LocalTime;
 import java.util.List;
 import java.util.Set;
 
-public record TaskView(Long id, String title, String description, Recurrence recurrence,
+public record TaskView(Long id, String title, String description, String emoji, Recurrence recurrence,
                        LocalDate startDate, LocalDate endDate, boolean urgent,
                        Set<DayOfWeek> weekdays, LocalTime time, LocalDate dueDate,
                        TagView tag, boolean done, List<SubtaskView> subtasks) {}

@@ -19,6 +19,7 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Size;
 
 import java.security.Principal;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 @RestController
@@ -28,6 +29,8 @@ public class AuthController {
     public record LoginRequest(@NotBlank String email, @NotBlank String password) {}
     public record ProfileRequest(
             @NotBlank(message = "Informe o nome") @Size(max = 100) String name) {}
+
+    public record AvatarRequest(@Size(max = 64) String avatar) {}
 
     public record EmailRequest(
             @NotBlank(message = "Informe o e-mail") @Email(message = "E-mail inválido") String email,
@@ -72,7 +75,7 @@ public class AuthController {
             contextRepository.saveContext(context, request, response);
 
             User user = userService.findByEmail(auth.getName());
-            return ResponseEntity.ok(Map.of("email", user.getEmail(), "name", user.getName()));
+            return ResponseEntity.ok(view(user));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(Map.of("message", "E-mail ou senha inválidos"));
@@ -80,19 +83,24 @@ public class AuthController {
     }
 
     @GetMapping("/me")
-    public Map<String, String> me(Principal principal) {
+    public Map<String, Object> me(Principal principal) {
         User user = userService.findByEmail(principal.getName());
-        return Map.of("email", user.getEmail(), "name", user.getName());
+        return view(user);
     }
 
     @PutMapping("/profile")
-    public Map<String, String> updateProfile(@Valid @RequestBody ProfileRequest body, Principal principal) {
+    public Map<String, Object> updateProfile(@Valid @RequestBody ProfileRequest body, Principal principal) {
         User user = userService.updateName(principal.getName(), body.name());
-        return Map.of("email", user.getEmail(), "name", user.getName());
+        return view(user);
+    }
+
+    @PutMapping("/avatar")
+    public Map<String, Object> updateAvatar(@Valid @RequestBody AvatarRequest body, Principal principal) {
+        return view(userService.updateAvatar(principal.getName(), body.avatar()));
     }
 
     @PutMapping("/email")
-    public Map<String, String> changeEmail(@Valid @RequestBody EmailRequest body,
+    public Map<String, Object> changeEmail(@Valid @RequestBody EmailRequest body,
                                            Authentication auth,
                                            HttpServletRequest request,
                                            HttpServletResponse response) {
@@ -105,12 +113,20 @@ public class AuthController {
         SecurityContextHolder.setContext(context);
         contextRepository.saveContext(context, request, response);
 
-        return Map.of("email", user.getEmail(), "name", user.getName());
+        return view(user);
     }
 
     @PutMapping("/password")
     public ResponseEntity<Void> changePassword(@Valid @RequestBody PasswordRequest body, Principal principal) {
         userService.changePassword(principal.getName(), body.currentPassword(), body.newPassword());
         return ResponseEntity.noContent().build();
+    }
+
+    private static Map<String, Object> view(User user) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("email", user.getEmail());
+        m.put("name", user.getName());
+        m.put("avatar", user.getAvatar());
+        return m;
     }
 }

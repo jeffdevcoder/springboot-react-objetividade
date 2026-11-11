@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useState } from 'react'
 import { api } from '../../api'
 import { formatDuration, fromIso, periodLabel, periodRange, shiftAnchor, toIso } from '../../study'
-import DonutChart from '../finance/DonutChart'
 import Pomodoro from './Pomodoro.jsx'
 import SubjectModal from './SubjectModal.jsx'
+import SessionModal from './SessionModal.jsx'
 import '../../styles/finance.css'
 import '../../styles/study.css'
 import Calendar from '../Calendar'
@@ -23,6 +23,9 @@ export default function StudyPanel() {
     const [anchor, setAnchor] = useState(() => toIso(new Date()))
     const [tick, setTick] = useState(0)
     const [modal, setModal] = useState({ open: false, subject: null })
+    const [selectId, setSelectId] = useState(null)
+    const [openSession, setOpenSession] = useState(null)
+    const closeSession = useCallback(() => setOpenSession(null), [])
     const [error, setError] = useState('')
     const [pickerOpen, setPickerOpen] = useState(false)
     const closePicker = useCallback(() => setPickerOpen(false), [])
@@ -49,11 +52,9 @@ export default function StudyPanel() {
 
     const reload = () => setTick(n => n + 1)
 
-    const byId = new Map()
     const byDay = new Map()
     const byDaySub = new Map()
     for (const s of sessions) {
-        byId.set(s.subjectId, (byId.get(s.subjectId) ?? 0) + s.seconds)
         byDay.set(s.date, (byDay.get(s.date) ?? 0) + s.seconds)
 
         const m = byDaySub.get(s.date) ?? new Map()
@@ -61,12 +62,10 @@ export default function StudyPanel() {
         byDaySub.set(s.date, m)
     }
     const colorOf = new Map(subjects.map(s => [s.id, s.color]))
+    const subjectOf = new Map(subjects.map(s => [s.id, s]))
+    const recent = [...sessions].reverse()
 
-    const segments = subjects
-        .filter(s => byId.has(s.id))
-        .map(s => ({ key: `s${s.id}`, label: s.name, emoji: s.emoji, color: s.color, value: byId.get(s.id) }))
-        .sort((a, b) => b.value - a.value)
-    const total = segments.reduce((sum, s) => sum + s.value, 0)
+    const total = sessions.reduce((sum, s) => sum + s.seconds, 0)
 
     const days = []
     for (let d = fromIso(from); toIso(d) <= to; d.setDate(d.getDate() + 1)) days.push(toIso(d))
@@ -79,6 +78,7 @@ export default function StudyPanel() {
 
             <Pomodoro
                 subjects={subjects}
+                selectId={selectId}
                 onSaved={reload}
                 onManage={subject => setModal({ open: true, subject })}
             />
@@ -170,34 +170,6 @@ export default function StudyPanel() {
 
             {error && <p className="task-error">{error}</p>}
 
-            <div className="fin-overview study-overview">
-                <DonutChart
-                    segments={segments}
-                    centerLabel="Total"
-                    centerValue={formatDuration(total)}
-                    centerHint=""
-                />
-
-                <div className="fin-stats">
-                    <div className="fin-stats-scroll">
-                        {segments.map(s => (
-                            <div key={s.key} className="fin-stat">
-                                <span className="fin-stat-label">
-                                    <span className="fin-dot" style={{ background: s.color }} />
-                                    {s.emoji} {s.label}
-                                </span>
-                                <span className="fin-stat-value">{formatDuration(s.value)}</span>
-                            </div>
-                        ))}
-                    </div>
-
-                    <div className="fin-stat fin-stat-total">
-                        <span className="fin-stat-label">Total</span>
-                        <span className="fin-stat-value">{formatDuration(total)}</span>
-                    </div>
-                </div>
-            </div>
-
             {period !== 'day' && (
                 <div className={`study-bars ${period === 'month' ? 'is-month' : ''}`}>
                     {days.map(d => {
@@ -232,12 +204,59 @@ export default function StudyPanel() {
                 </div>
             )}
 
+            <div className="study-total">
+                <span>Total</span>
+                <strong>{formatDuration(total)}</strong>
+            </div>
+
+            {recent.length === 0 && <p className="study-empty">Nenhum pomodoro neste período</p>}
+
+            {recent.length > 0 && (
+                <ul className="study-sessions">
+                    {recent.map(s => {
+                        const sub = subjectOf.get(s.subjectId)
+                        return (
+                            <li key={s.id}>
+                                <button type="button" className="study-session" onClick={() => setOpenSession(s)}>
+                                    <span className="fin-dot" style={{ background: sub?.color ?? 'var(--color-muted)' }} />
+                                    <span className="study-session-body">
+                                        <span className="study-session-title">
+                                            {sub ? `${sub.emoji} ${sub.name}` : 'Matéria removida'}
+                                        </span>
+                                        <span className={`study-session-desc ${s.description ? '' : 'is-empty'}`}>
+                                            {s.description || 'Sem descrição'}
+                                        </span>
+                                    </span>
+                                    <span className="study-session-side">
+                                        {period !== 'day' && <span>{s.date.split('-').reverse().slice(0, 2).join('/')}</span>}
+                                        <span>{formatDuration(s.seconds)}</span>
+                                    </span>
+                                </button>
+                            </li>
+                        )
+                    })}
+                </ul>
+            )}
+
+            <SessionModal
+                session={openSession}
+                subject={openSession && subjectOf.get(openSession.subjectId)}
+                onClose={closeSession}
+                onSaved={updated => {
+                    setSessions(list => list.map(x => (x.id === updated.id ? updated : x)))
+                    setOpenSession(updated)
+                }}
+            />
+
             <SubjectModal
                 open={modal.open}
                 subject={modal.subject}
                 subjects={subjects}
                 onClose={() => setModal(m => ({ ...m, open: false }))}
-                onChanged={reload}
+                onChanged={saved => {
+                    if (saved && !modal.subject) setSelectId(saved.id)
+                    reload()
+                }}
             />
         </section>
     )

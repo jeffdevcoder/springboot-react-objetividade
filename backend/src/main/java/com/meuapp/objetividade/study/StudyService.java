@@ -78,7 +78,16 @@ public class StudyService {
         s.setSubject(subject);
         s.setDate(req.date() != null ? req.date() : LocalDate.now());
         s.setSeconds(req.seconds());
+        s.setDescription(cleanDescription(req.description()));
         sessions.save(s);
+        return SessionView.of(s);
+    }
+
+    @Transactional
+    public SessionView updateDescription(String email, Long id, String description) {
+        StudySession s = sessions.findByIdAndUser(id, user(email))
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        s.setDescription(cleanDescription(description));
         return SessionView.of(s);
     }
 
@@ -98,6 +107,11 @@ public class StudyService {
         if (subjects.existsByUserAndColorIgnoreCaseAndIdNot(user, color, selfId)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Essa cor já está em uso");
         }
+    }
+
+    private String cleanDescription(String description) {
+        String d = description == null ? "" : clean(description);
+        return d.isEmpty() ? null : d;
     }
 
     private String clean(String name) {

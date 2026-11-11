@@ -14,6 +14,7 @@ import java.util.Set;
 public record CreateTaskRequest(
         @NotBlank(message = "Informe o nome da tarefa") @Size(max = 100) String title,
         @Size(max = 500) String description,
+        @Size(max = 16) String emoji,
         @NotNull Recurrence recurrence,
         LocalDate startDate,
         LocalDate endDate,

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../AuthContext'
 import { useTheme } from '../ThemeContext'
 import AccountModal from './AccountModal'
+import Avatar from './Avatar'
 
 export default function UserMenu() {
     const { user, logout } = useAuth()
@@ -36,9 +37,7 @@ export default function UserMenu() {
                 aria-haspopup="menu"
                 aria-expanded={open}
             >
-                <span className="user-avatar" aria-hidden="true">
-                    {user?.name?.charAt(0).toUpperCase()}
-                </span>
+                <Avatar user={user} className="user-avatar" />
                 <span className="user-name">{user?.name}</span>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                      strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

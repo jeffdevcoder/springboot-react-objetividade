@@ -1,0 +1,68 @@
+/* anotações: reaproveita a lista de tarefas (tasks.css) */
+.note-list .task-emoji-anchor { align-self: flex-start; margin-top: 0.7rem; }
+
+/* descrição em até 2 linhas (mantém quebras de linha) */
+.note-list .note-desc {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    white-space: pre-line;
+}
+
+.note-when {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    justify-content: center;
+    align-self: stretch;
+    gap: 2px;
+    flex-shrink: 0;
+    padding: 0.85rem 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+}
+.note-count { font-size: 0.85rem; font-weight: 600; white-space: nowrap; }
+.note-day { font-size: 0.75rem; opacity: 0.55; font-variant-numeric: tabular-nums; }
+
+.note-item.is-soon .note-count { color: #d97706; }
+.note-item.is-past .note-count { opacity: 0.5; font-weight: 500; }
+html[data-theme='dark'] .note-item.is-soon .note-count { color: #fbbf24; }
+
+.note-empty { margin: 1.5rem 0 0.5rem; text-align: center; opacity: 0.6; font-size: 0.9rem; }
+
+/* campo de data no pop-up */
+.note-date { display: flex; flex-direction: column; gap: 6px; }
+.note-date-row { position: relative; display: flex; align-items: center; gap: 8px; }
+.note-date-row > :first-child { flex: 1; min-width: 0; }
+.note-date-clear {
+    flex-shrink: 0;
+    padding: 0.5rem 0.75rem;
+    border: 0;
+    border-radius: 8px;
+    background: none;
+    color: inherit;
+    font: inherit;
+    font-size: 0.85rem;
+    opacity: 0.65;
+    cursor: pointer;
+}
+.note-date-clear:hover { opacity: 1; background: color-mix(in srgb, currentColor 8%, transparent); }
+.note-date-hint { opacity: 0.65; font-size: 0.8rem; }
+
+/* o modal de anotação é curto: sem rolagem interna, para o calendário não ficar escondido */
+.note-modal .task-modal-body { overflow: visible; }
+
+/* o campo de data fica no fim do pop-up: o calendário do site abre para cima */
+.note-date-row .calendar {
+    top: auto;
+    bottom: calc(100% + 8px);
+    animation-name: calendar-up;
+}
+@keyframes calendar-up {
+    from { opacity: 0; transform: translateY(6px) scale(0.98); }
+    to   { opacity: 1; transform: none; }
+}

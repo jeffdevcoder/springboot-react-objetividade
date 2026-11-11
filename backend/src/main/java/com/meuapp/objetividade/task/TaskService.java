@@ -100,6 +100,7 @@ public class TaskService {
         task.setTitle(req.title().trim());
         task.setDescription(req.description() == null || req.description().isBlank()
                 ? null : req.description().trim());
+        task.setEmoji(cleanEmoji(req.emoji()));
         task.setRecurrence(req.recurrence());
         task.setStartDate(start);
         task.setEndDate(end);
@@ -130,6 +131,7 @@ public class TaskService {
         task.setTitle(req.title().trim());
         task.setDescription(req.description() == null || req.description().isBlank()
                 ? null : req.description().trim());
+        task.setEmoji(cleanEmoji(req.emoji()));
         task.setStartDate(start);
         task.setEndDate(end);
         task.setUrgent(req.urgent());
@@ -186,7 +188,7 @@ public class TaskService {
                         s.getId() != null && subCompletions.existsBySubtaskAndDate(s, key)))
                 .toList();
 
-        return new TaskView(t.getId(), t.getTitle(), t.getDescription(), t.getRecurrence(),
+        return new TaskView(t.getId(), t.getTitle(), t.getDescription(), t.getEmoji(), t.getRecurrence(),
                 t.getStartDate(), t.getEndDate(), t.isUrgent(), days, t.getTime(), due,
                 tag, done, subs);
     }
@@ -286,6 +288,20 @@ public class TaskService {
         Tag tag = tagRepo.findByIdAndUser(tagId, user(email))
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
         task.setTag(tag);
+    }
+
+    @Transactional
+    public void setEmoji(String email, Long taskId, String emoji) {
+        find(email, taskId).setEmoji(cleanEmoji(emoji));
+    }
+
+    private String cleanEmoji(String emoji) {
+        if (emoji == null || emoji.isBlank()) return null;
+        String e = emoji.trim();
+        if (e.length() > 16) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Emoji inválido");
+        }
+        return e;
     }
 
     private void checkDates(LocalDate start, LocalDate end) {

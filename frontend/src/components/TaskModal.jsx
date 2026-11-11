@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
+import EmojiPicker from './EmojiPicker'
+import { TASK_EMOJI_GROUPS, TASK_EMOJI_PLACEHOLDER } from '../emojis'
 import { api } from '../api'
 import DateField from './DateField'
 
@@ -29,6 +31,8 @@ export default function TaskModal({ open, task, defaultDate, canCheck = true, on
     const editing = Boolean(task)
     const [title, setTitle] = useState('')
     const [description, setDescription] = useState('')
+    const [emoji, setEmoji] = useState('')
+    const [emojiOpen, setEmojiOpen] = useState(false)
     const [recurrence, setRecurrence] = useState('ONCE')
     const [startDate, setStartDate] = useState(today)
     const [endDate, setEndDate] = useState('')
@@ -51,6 +55,8 @@ export default function TaskModal({ open, task, defaultDate, canCheck = true, on
         if (open) {
             setTitle(task?.title ?? '')
             setDescription(task?.description ?? '')
+            setEmoji(task?.emoji ?? '')
+            setEmojiOpen(false)
             setRecurrence(task?.recurrence ?? 'ONCE')
             setStartDate(task?.startDate ?? defaultDate ?? today())
             setEndDate(task?.endDate ?? '')
@@ -92,6 +98,7 @@ export default function TaskModal({ open, task, defaultDate, canCheck = true, on
             const body = {
                 title,
                 description,
+                emoji: emoji || null,
                 recurrence,
                 startDate,
                 endDate: once || noEnd ? null : endDate,
@@ -192,16 +199,44 @@ export default function TaskModal({ open, task, defaultDate, canCheck = true, on
                 <h2>{editing ? 'Tarefa' : 'Nova tarefa'}</h2>
 
                 <div className="task-modal-body">
-                    <input
-                        className="form-input"
-                        ref={titleRef}
-                        placeholder="Nome da tarefa"
-                        value={title}
-                        maxLength={100}
-                        onChange={e => setTitle(e.target.value)}
-                        required
-                        autoComplete="off"
-                    />
+                    <div className="task-title-row">
+                        <div className="task-emoji-anchor">
+                            <button
+                                type="button"
+                                className="form-input task-emoji-field"
+                                onClick={() => setEmojiOpen(o => !o)}
+                                aria-label={emoji ? 'Trocar emoji' : 'Escolher emoji'}
+                                title={emoji ? 'Trocar emoji' : 'Escolher emoji'}
+                                aria-haspopup="dialog"
+                                aria-expanded={emojiOpen}
+                            >
+                                <span className={emoji ? '' : 'emoji-empty'}>{emoji || TASK_EMOJI_PLACEHOLDER}</span>
+                            </button>
+
+                            {emojiOpen && (
+                                <EmojiPicker
+                                    groups={TASK_EMOJI_GROUPS}
+                                    value={emoji}
+                                    onSelect={e => {
+                                        setEmoji(e)
+                                        setEmojiOpen(false)
+                                    }}
+                                    onClose={() => setEmojiOpen(false)}
+                                />
+                            )}
+                        </div>
+
+                        <input
+                            className="form-input"
+                            ref={titleRef}
+                            placeholder="Nome da tarefa"
+                            value={title}
+                            maxLength={100}
+                            onChange={e => setTitle(e.target.value)}
+                            required
+                            autoComplete="off"
+                        />
+                    </div>
                     <textarea
                         className="form-input"
                         placeholder="Descrição (opcional)"

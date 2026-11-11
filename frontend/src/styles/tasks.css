@@ -944,19 +944,6 @@ html[data-theme="dark"] .task-overlay .task-noend input[type="checkbox"]:checked
 .user-pop-item svg { flex-shrink: 0; opacity: 0.7; }
 .user-pop-sep { height: 1px; margin: 4px 6px; background: var(--color-border); }
 
-.account-avatar {
-    align-self: center;
-    display: grid;
-    place-items: center;
-    width: 72px;
-    height: 72px;
-    border-radius: 50%;
-    background: var(--color-primary);
-    color: var(--color-bg);
-    font-family: 'Manrope', sans-serif;
-    font-size: 28px;
-    font-weight: 800;
-}
 .account-section {
     display: flex;
     flex-direction: column;
@@ -1009,4 +996,134 @@ html[data-theme="dark"] .task-overlay .task-noend input[type="checkbox"]:checked
     .day-nav { gap: 4px; }
     .day-btn { width: 28px; height: 28px; }
     .day-nav .date-chip { padding: 5px 6px; font-size: 10.5px; }
+}
+.task-emoji-anchor { position: relative; flex-shrink: 0; }
+.task-emoji {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    padding: 0;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    font-size: 1.2rem;
+    line-height: 1;
+    cursor: pointer;
+    transition: background 0.15s ease, transform 0.1s ease;
+}
+.task-emoji:hover { background: color-mix(in srgb, currentColor 8%, transparent); }
+.task-emoji:active { transform: scale(0.92); }
+.task-item.is-done .task-emoji { opacity: 0.45; }
+
+.task-title-row { display: flex; gap: 0.6rem; }
+.task-title-row > .form-input { flex: 1; min-width: 0; }
+.form-input.task-emoji-field {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 100%;
+    padding: 0;
+    font-size: 22px;
+    cursor: pointer;
+}
+
+/* foto de perfil */
+img.user-avatar { object-fit: cover; background: none; }
+
+.account-avatar-section { align-items: stretch; padding-top: 0; border-top: 0; }
+.account-avatar-save { align-self: center; }
+.account-avatar-save.is-hidden { visibility: hidden; }
+
+.avatar-carousel {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 4px;
+}
+.avatar-arrow {
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+    transition: background 0.15s ease, opacity 0.15s ease;
+}
+.avatar-arrow:hover:not(:disabled) { background: color-mix(in srgb, currentColor 10%, transparent); }
+.avatar-arrow:disabled { opacity: 0.25; cursor: default; }
+
+.avatar-track {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    /* metade da largura menos metade da foto central: deixa a primeira e a última centralizarem */
+    padding: 10px calc(50% - 44px);
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    overscroll-behavior-x: contain;
+    cursor: grab;
+    outline: none;
+    -webkit-mask-image: linear-gradient(90deg, transparent, #000 22%, #000 78%, transparent);
+            mask-image: linear-gradient(90deg, transparent, #000 22%, #000 78%, transparent);
+}
+.avatar-track::-webkit-scrollbar { display: none; }
+.avatar-track.is-dragging { cursor: grabbing; scroll-snap-type: none; }
+.avatar-track.is-dragging .avatar-option { pointer-events: none; }
+
+.avatar-option {
+    flex: 0 0 auto;
+    width: 88px;
+    height: 88px;
+    padding: 0;
+    border: 3px solid transparent;
+    border-radius: 50%;
+    background: none;
+    overflow: hidden;
+    cursor: pointer;
+    scroll-snap-align: center;
+    transform: scale(0.72);
+    opacity: 0.55;
+    transition: transform 0.25s ease, opacity 0.25s ease, border-color 0.25s ease;
+}
+.avatar-option.is-selected { transform: none; opacity: 1; border-color: var(--color-primary); }
+.avatar-option img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    user-select: none;
+    -webkit-user-drag: none;
+}
+.avatar-initial {
+    display: grid;
+    place-items: center;
+    width: 100%;
+    height: 100%;
+    background: var(--color-primary);
+    color: var(--color-bg);
+    font-family: 'Manrope', sans-serif;
+    font-size: 32px;
+    font-weight: 800;
+}
+.avatar-track:focus-visible .avatar-option.is-selected { outline: 2px solid var(--color-primary); outline-offset: 3px; }
+
+.avatar-caption {
+    grid-column: 1 / -1;
+    margin: 0;
+    color: var(--color-muted);
+    font-size: 13px;
+    text-align: center;
+}
+
+@media (hover: none) {
+    .avatar-arrow { display: none; }
+    .avatar-carousel { grid-template-columns: minmax(0, 1fr); }
 }

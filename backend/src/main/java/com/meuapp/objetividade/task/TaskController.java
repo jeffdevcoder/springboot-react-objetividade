@@ -56,6 +56,14 @@ public class TaskController {
         return ResponseEntity.noContent().build();
     }
 
+    @PatchMapping("/{id}/emoji")
+    public ResponseEntity<Void> setEmoji(@PathVariable Long id,
+                                         @RequestBody EmojiRequest body,
+                                         Principal principal) {
+        service.setEmoji(principal.getName(), id, body.emoji());
+        return ResponseEntity.noContent().build();
+    }
+
     @PutMapping("/{id}")
     public TaskView update(@PathVariable Long id,
                            @Valid @RequestBody CreateTaskRequest body,
