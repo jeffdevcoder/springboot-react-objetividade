@@ -10,6 +10,7 @@ import { tagHex } from '../tagColors'
 import FinancePanel from '../components/finance/FinancePanel.jsx'
 import StudyPanel from '../components/study/StudyPanel.jsx'
 import NotesPanel from '../components/notes/NotesPanel.jsx'
+import GoalsPanel from '../components/goals/GoalsPanel.jsx'
 import UserMenu from '../components/UserMenu'
 import EmojiPicker from '../components/EmojiPicker'
 import { TASK_EMOJI_GROUPS, TASK_EMOJI_PLACEHOLDER } from '../emojis'
@@ -118,7 +119,7 @@ export default function Today() {
     const isFuture = selectedDate > today
     const [section, setSection] = useState(() => {
         const saved = localStorage.getItem('section')
-        return ['finance', 'study', 'notes'].includes(saved) ? saved : 'tasks'
+        return ['finance', 'study', 'notes', 'goals'].includes(saved) ? saved : 'tasks'
     })
 
     useLayoutEffect(() => {
@@ -365,7 +366,9 @@ export default function Today() {
                                 ? 'Seus estudos.'
                                 : section === 'notes'
                                     ? 'Suas anotações.'
-                                    : isToday ? 'Checklist de hoje.' : 'Checklist do dia.'}
+                                    : section === 'goals'
+                                        ? 'Suas metas.'
+                                        : isToday ? 'Checklist de hoje.' : 'Checklist do dia.'}
                     </h1>
 
                     <p className="dashboard-subtitle">
@@ -375,7 +378,9 @@ export default function Today() {
                                 ? 'Foque, registre e acompanhe suas horas por matéria.'
                                 : section === 'notes'
                                     ? 'Ideias, lembretes e datas importantes, sem perder nada de vista.'
-                                    : 'Um passo de cada vez. Organize o que importa e mantenha o foco no seu dia.'}
+                                    : section === 'goals'
+                                        ? 'Defina onde quer chegar, até quando, e comemore cada conquista.'
+                                        : 'Um passo de cada vez. Organize o que importa e mantenha o foco no seu dia.'}
                     </p>
                 </div>
 
@@ -415,6 +420,15 @@ export default function Today() {
                         onClick={() => chooseSection('notes')}
                     >
                         Anotações
+                    </button>
+                    <button
+                        type="button"
+                        role="tab"
+                        aria-selected={section === 'goals'}
+                        className={`section-tab ${section === 'goals' ? 'is-active' : ''}`}
+                        onClick={() => chooseSection('goals')}
+                    >
+                        Metas
                     </button>
                 </div>
 
@@ -649,6 +663,8 @@ export default function Today() {
                     <FinancePanel />
                 ) : section === 'notes' ? (
                     <NotesPanel />
+                ) : section === 'goals' ? (
+                    <GoalsPanel />
                 ) : (
                     <StudyPanel />
                 )}

@@ -4,6 +4,8 @@ import { api } from '../api'
 import '../styles/auth.css'
 import ThemeToggle from "../components/ThemeToggle.jsx";
 import Logo from "../components/Logo.jsx";
+import PasswordStrength from '../components/PasswordStrength'
+import { isStrongPassword } from '../password'
 
 export default function Register() {
     const navigate = useNavigate()
@@ -34,6 +36,10 @@ export default function Register() {
         setLoading(true)
 
         try {
+            if (!isStrongPassword(form.password)) {
+                throw new Error('A senha precisa ter no mínimo 8 caracteres, um número e um caractere especial.')
+            }
+
             if (form.password !== confirmPassword) {
                 throw new Error('As senhas não coincidem.')
             }
@@ -119,10 +125,10 @@ export default function Register() {
                                 className="form-input"
                                 id="password"
                                 type={showPassword ? 'text' : 'password'}
-                                placeholder="Mínimo de 6 caracteres"
+                                placeholder="Mínimo de 8 caracteres"
                                 value={form.password}
                                 onChange={update('password')}
-                                minLength={6}
+                                minLength={8}
                                 required
                                 autoComplete="off"
                             />
@@ -170,6 +176,8 @@ export default function Register() {
                                 )}
                             </button>
                         </div>
+
+                        <PasswordStrength password={form.password} />
                     </div>
 
                     <div className="form-field">
@@ -186,7 +194,7 @@ export default function Register() {
                                 autoComplete="new-password"
                                 value={confirmPassword}
                                 onChange={(e) => setConfirmPassword(e.target.value)}
-                                minLength={6}
+                                minLength={8}
                                 required
                                 autoComplete="off"
                             />

@@ -515,3 +515,18 @@ input:focus-visible {
         transition-duration: 0.01ms !important;
     }
 }
+.auth-notice {
+    margin: 0;
+    padding: 12px 14px;
+    border: 1px solid #c8e6d0;
+    border-radius: 10px;
+    background: #f1faf3;
+    color: #15803d;
+    font-size: 14px;
+}
+
+html[data-theme='dark'] .auth-notice {
+    background: rgba(74, 222, 128, 0.08);
+    border-color: rgba(74, 222, 128, 0.3);
+    color: #4ade80;
+}

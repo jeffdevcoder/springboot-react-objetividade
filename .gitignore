@@ -1,0 +1,5 @@
+# Banco H2 local (contém dados dos usuários)
+data/
+backend/data/
+*.mv.db
+*.trace.db

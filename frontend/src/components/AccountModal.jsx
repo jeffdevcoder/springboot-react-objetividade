@@ -1,16 +1,22 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../AuthContext'
 import { api } from '../api'
+import { useNavigate } from 'react-router-dom'
 import AvatarCarousel from './AvatarCarousel'
+import PasswordStrength from './PasswordStrength'
+import PasswordInput from './PasswordInput'
+import { isStrongPassword } from '../password'
 
 export default function AccountModal({ open, onClose }) {
     const { user, updateUser } = useAuth()
+    const navigate = useNavigate()
     const [name, setName] = useState('')
     const [avatar, setAvatar] = useState(null)
     const [email, setEmail] = useState('')
     const [emailPwd, setEmailPwd] = useState('')
     const [curPwd, setCurPwd] = useState('')
     const [newPwd, setNewPwd] = useState('')
+    const [confirmPwd, setConfirmPwd] = useState('')
     const [busy, setBusy] = useState('')
     const [status, setStatus] = useState(null)
     const [wasOpen, setWasOpen] = useState(false)
@@ -24,6 +30,7 @@ export default function AccountModal({ open, onClose }) {
             setEmailPwd('')
             setCurPwd('')
             setNewPwd('')
+            setConfirmPwd('')
             setStatus(null)
         }
     }
@@ -78,8 +85,10 @@ export default function AccountModal({ open, onClose }) {
             method: 'PUT',
             body: { currentPassword: curPwd, newPassword: newPwd },
         })
-        setCurPwd('')
-        setNewPwd('')
+        // o backend encerrou todas as sessões: volta para o login
+        onClose()
+        updateUser(null)
+        navigate('/login', { replace: true, state: { notice: 'Senha alterada. Entre novamente com a nova senha.' } })
     }
 
     const message = key =>
@@ -178,31 +187,57 @@ export default function AccountModal({ open, onClose }) {
                         onSubmit={e => { e.preventDefault(); run('password', savePassword) }}
                     >
                         <span className="form-label">Senha</span>
+                        {/* diz ao gerenciador de senhas do navegador de qual conta é a senha,
+                            para ele não preencher com a senha de outra conta salva */}
                         <input
-                            className="form-input"
-                            type="password"
+                            type="email"
+                            name="username"
+                            autoComplete="username"
+                            value={user?.email ?? ''}
+                            readOnly
+                            hidden
+                        />
+                        <label className="account-sublabel" htmlFor="acc-cur-pwd">
+                            Senha atual <span>(a que você usa hoje para entrar)</span>
+                        </label>
+                        <PasswordInput
+                            id="acc-cur-pwd"
                             placeholder="Senha atual"
                             value={curPwd}
-                            autoComplete="off"
+                            autoComplete="current-password"
                             onChange={e => setCurPwd(e.target.value)}
                         />
+
+                        <label className="account-sublabel" htmlFor="acc-new-pwd">Nova senha</label>
+                        <PasswordInput
+                            id="acc-new-pwd"
+                            placeholder="Nova senha"
+                            value={newPwd}
+                            autoComplete="new-password"
+                            onChange={e => setNewPwd(e.target.value)}
+                        />
+                        <PasswordStrength password={newPwd} />
+
+                        <label className="account-sublabel" htmlFor="acc-confirm-pwd">Confirme a nova senha</label>
                         <div className="account-row">
-                            <input
-                                className="form-input"
-                                type="password"
-                                placeholder="Nova senha"
-                                value={newPwd}
+                            <PasswordInput
+                                id="acc-confirm-pwd"
+                                placeholder="Repita a nova senha"
+                                value={confirmPwd}
                                 autoComplete="new-password"
-                                onChange={e => setNewPwd(e.target.value)}
+                                onChange={e => setConfirmPwd(e.target.value)}
                             />
                             <button
                                 type="submit"
                                 className="task-btn is-primary"
-                                disabled={!curPwd || newPwd.length < 6 || busy === 'password'}
+                                disabled={!curPwd || !isStrongPassword(newPwd) || newPwd !== confirmPwd || busy === 'password'}
                             >
                                 Salvar
                             </button>
                         </div>
+                        {confirmPwd && newPwd !== confirmPwd && (
+                            <p className="account-msg is-error">As senhas não coincidem</p>
+                        )}
                         {message('password')}
                     </form>
                 </div>

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../AuthContext'
 import '../styles/auth.css'
 import Logo from '../components/Logo'
@@ -8,6 +8,7 @@ import ThemeToggle from '../components/ThemeToggle'
 export default function Login() {
     const { login } = useAuth()
     const navigate = useNavigate()
+    const notice = useLocation().state?.notice
 
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
@@ -107,6 +108,10 @@ export default function Login() {
                             </button>
                         </div>
                     </div>
+
+                    {notice && !error && (
+                        <p className="auth-notice" role="status">{notice}</p>
+                    )}
 
                     {error && (
                         <p className="auth-error" role="alert">

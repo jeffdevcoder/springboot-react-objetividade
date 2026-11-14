@@ -1,0 +1,27 @@
+/* metas: reaproveita a lista de tarefas (tasks.css) e o layout das anotações (notes.css) */
+.goal-list .task-check { align-self: flex-start; margin-top: 1.05rem; }
+
+.goal-item.is-soon .note-count { color: #d97706; }
+.goal-item.is-late .note-count { color: var(--color-error); }
+.goal-item.is-done .note-count { color: #16a34a; }
+.goal-item.is-done .note-when { opacity: 0.8; }
+
+html[data-theme='dark'] .goal-item.is-soon .note-count { color: #fbbf24; }
+html[data-theme='dark'] .goal-item.is-done .note-count { color: #4ade80; }
+
+/* barra de progresso dos subtópicos (alinhada com o título, depois do check) */
+.goal-list .task-progress,
+.goal-list .task-subs { padding-left: 2rem; }
+.goal-progress .goal-chevron { flex-shrink: 0; opacity: 0.5; transition: transform 0.2s ease; }
+.goal-progress[aria-expanded='true'] .goal-chevron { transform: rotate(180deg); }
+.goal-progress.is-complete .task-bar-fill { background: #16a34a; }
+html[data-theme='dark'] .goal-progress.is-complete .task-bar-fill { background: #4ade80; }
+
+/* no pop-up, muitos subtópicos rolam dentro da própria lista */
+.goal-steps-edit {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    max-height: 220px;
+    overflow-y: auto;
+}

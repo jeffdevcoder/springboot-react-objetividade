@@ -2,7 +2,6 @@ package com.meuapp.objetividade.user;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
 
 public class RegisterForm {
     @NotBlank(message = "Informe seu nome")
@@ -13,7 +12,7 @@ public class RegisterForm {
     private String email;
 
     @NotBlank(message = "Informe a senha")
-    @Size(min = 6, message = "A senha deve ter no mínimo 6 caracteres")
+    @StrongPassword
     private String password;
 
     public String getName() {
