@@ -347,7 +347,7 @@ export default function Today() {
             <header className="dashboard-header">
                 <a href="/home" className="brand">
                     <Logo />
-                    <span>Objetividade</span>
+                    <span>Objetividade.</span>
                 </a>
 
                 <div className="user-area">
