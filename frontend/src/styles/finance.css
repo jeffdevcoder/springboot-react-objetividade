@@ -457,3 +457,59 @@ html[data-theme="dark"] .task-urgent input[type="checkbox"]:checked {
     .donut-wrap { align-self: center; width: 180px; height: 180px; }
     .donut-center { padding: 0 30px; }
 }
+/* ---- Conta paga ---- */
+.fin-paid { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.fin-paid .form-label { margin: 0; }
+
+.fin-paid-toggle {
+    display: inline-flex;
+    padding: 2px;
+    border: 1px solid color-mix(in srgb, currentColor 15%, transparent);
+    border-radius: 999px;
+}
+
+.fin-paid-opt {
+    font: inherit;
+    font-size: 12px;
+    padding: 4px 14px;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--color-muted);
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+}
+.fin-paid-opt.is-yes {
+    background: color-mix(in srgb, var(--fin-income-text) 18%, transparent);
+    color: var(--fin-income-text);
+}
+.fin-paid-opt.is-no {
+    background: color-mix(in srgb, var(--fin-expense-text) 16%, transparent);
+    color: var(--fin-expense-text);
+}
+
+.fin-paid-tag { color: var(--fin-income-text); }
+
+.fin-pay-hint { margin: 2px 0 8px; }
+
+.fin-row.is-paid .fin-open { opacity: 0.5; }
+
+.fin-pay-state { flex-shrink: 0; font-size: 12px; white-space: nowrap; }
+
+.fin-pay-confirm {
+    flex-shrink: 0;
+    font: inherit;
+    font-size: 12px;
+    padding: 5px 12px;
+    border: 0;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--fin-income-text) 18%, transparent);
+    color: var(--fin-income-text);
+    white-space: nowrap;
+    cursor: pointer;
+}
+.fin-pay-confirm.is-undo {
+    background: color-mix(in srgb, var(--fin-expense-text) 16%, transparent);
+    color: var(--fin-expense-text);
+}
+.fin-pay-confirm:disabled { opacity: 0.6; cursor: default; }

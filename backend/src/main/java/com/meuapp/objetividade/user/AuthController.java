@@ -34,6 +34,20 @@ public class AuthController {
     public record ProfileRequest(
             @NotBlank(message = "Informe o nome") @Size(max = 100) String name) {}
 
+    public record VerifyRequest(
+            @NotBlank(message = "Informe o e-mail") String email,
+            @NotBlank(message = "Informe o código") @Size(max = 12) String code) {}
+
+    public record ResendRequest(@NotBlank(message = "Informe o e-mail") String email) {}
+
+    public record ForgotRequest(
+            @NotBlank(message = "Informe o e-mail") @Email(message = "E-mail inválido") String email) {}
+
+    public record ResetRequest(
+            @NotBlank(message = "Informe o e-mail") String email,
+            @NotBlank(message = "Informe o código") @Size(max = 12) String code,
+            @NotBlank(message = "Informe a nova senha") @StrongPassword String newPassword) {}
+
     public record AvatarRequest(@Size(max = 64) String avatar) {}
 
     public record EmailRequest(
@@ -45,16 +59,22 @@ public class AuthController {
             @NotBlank(message = "Informe a nova senha") @StrongPassword String newPassword) {}
 
     private final UserService userService;
+    private final RegistrationService registration;
+    private final PasswordResetService passwordReset;
     private final AuthenticationManager authenticationManager;
     private final LoginAttemptService loginAttempts;
     private final FindByIndexNameSessionRepository<? extends Session> sessions;
     private final SecurityContextRepository contextRepository = new HttpSessionSecurityContextRepository();
 
     public AuthController(UserService userService,
+                          RegistrationService registration,
+                          PasswordResetService passwordReset,
                           AuthenticationManager authenticationManager,
                           LoginAttemptService loginAttempts,
                           FindByIndexNameSessionRepository<? extends Session> sessions) {
         this.userService = userService;
+        this.registration = registration;
+        this.passwordReset = passwordReset;
         this.authenticationManager = authenticationManager;
         this.loginAttempts = loginAttempts;
         this.sessions = sessions;
@@ -65,10 +85,40 @@ public class AuthController {
         return Map.of("token", token.getToken());
     }
 
+    /** 1ª etapa do cadastro: valida os dados e envia o código por e-mail. */
     @PostMapping("/register")
     public ResponseEntity<Void> register(@Valid @RequestBody RegisterForm form) {
-        userService.register(form);
+        registration.start(form);
+        return ResponseEntity.accepted().build();
+    }
+
+    /** 2ª etapa: confere o código e cria a conta. */
+    @PostMapping("/register/verify")
+    public ResponseEntity<Void> verify(@Valid @RequestBody VerifyRequest body) {
+        registration.verify(body.email(), body.code());
         return ResponseEntity.status(HttpStatus.CREATED).build();
+    }
+
+    @PostMapping("/register/resend")
+    public ResponseEntity<Void> resend(@Valid @RequestBody ResendRequest body) {
+        registration.resend(body.email());
+        return ResponseEntity.noContent().build();
+    }
+
+    /** Esqueci minha senha: envia o código (responde igual exista a conta ou não). */
+    @PostMapping("/password/forgot")
+    public ResponseEntity<Void> forgotPassword(@Valid @RequestBody ForgotRequest body) {
+        passwordReset.request(body.email());
+        return ResponseEntity.accepted().build();
+    }
+
+    /** Confere o código, grava a nova senha e encerra as sessões abertas da conta. */
+    @PostMapping("/password/reset")
+    public ResponseEntity<Void> resetPassword(@Valid @RequestBody ResetRequest body, HttpServletRequest request) {
+        String email = passwordReset.reset(body.email(), body.code(), body.newPassword());
+        loginAttempts.succeeded(email);
+        endSessions(email, request, false);
+        return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/login")

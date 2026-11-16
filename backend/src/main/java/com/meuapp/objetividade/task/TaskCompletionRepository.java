@@ -2,6 +2,8 @@ package com.meuapp.objetividade.task;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import java.time.LocalDate;
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 
 public interface TaskCompletionRepository extends JpaRepository<TaskCompletion, Long> {
@@ -9,5 +11,6 @@ public interface TaskCompletionRepository extends JpaRepository<TaskCompletion, 
     boolean existsByTaskAndDate(Task task, LocalDate date);
     void deleteByTaskAndDate(Task task, LocalDate date);
     Optional<TaskCompletion> findFirstByTaskAndDateGreaterThanEqualOrderByDateAsc(Task task, LocalDate date);
+    List<TaskCompletion> findByTaskInAndDateBetween(Collection<Task> tasks, LocalDate from, LocalDate to);
 }
 

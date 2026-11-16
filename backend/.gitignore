@@ -32,3 +32,6 @@ build/
 ### VS Code ###
 .vscode/
 data/
+
+# Credenciais locais de e-mail (nunca versionar)
+mail.local.properties

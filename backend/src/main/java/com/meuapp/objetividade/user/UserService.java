@@ -22,10 +22,8 @@ public class UserService {
         return repository.existsByEmail(email.toLowerCase());
     }
 
-    public void register(RegisterForm form) {
-        String name = form.getName().trim();
-        String email = form.getEmail().trim().toLowerCase();
-
+    /** Garante que nome e e-mail ainda não estão em uso. */
+    public void checkAvailable(String name, String email) {
         if (repository.existsByNameIgnoreCase(name)) {
             throw new ResponseStatusException(
                     HttpStatus.CONFLICT,
@@ -39,13 +37,17 @@ public class UserService {
                     "Este e-mail já está cadastrado"
             );
         }
+    }
+
+    /** Cria a conta depois que o e-mail foi confirmado (a senha já vem criptografada). */
+    public User createVerified(String name, String email, String passwordHash) {
+        checkAvailable(name, email);
 
         User user = new User();
         user.setName(name);
         user.setEmail(email);
-        user.setPassword(encoder.encode(form.getPassword()));
-
-        repository.save(user);
+        user.setPassword(passwordHash);
+        return repository.save(user);
     }
 
     public User findByEmail(String email) {

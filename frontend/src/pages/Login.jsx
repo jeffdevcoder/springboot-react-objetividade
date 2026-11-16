@@ -68,9 +68,14 @@ export default function Login() {
                     </div>
 
                     <div className="form-field">
-                        <label className="form-label" htmlFor="password">
-                            Senha
-                        </label>
+                        <div className="form-label-row">
+                            <label className="form-label" htmlFor="password">
+                                Senha
+                            </label>
+                            <Link className="auth-link auth-link-small" to="/forgot-password">
+                                Esqueceu a senha?
+                            </Link>
+                        </div>
 
                         <div className="password-wrapper">
                             <input

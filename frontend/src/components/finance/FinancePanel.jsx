@@ -103,11 +103,18 @@ export default function FinancePanel() {
         }
     }
 
+    function markPaid(t, paid) {
+        setItems(list => list.map(x => (rowKey(x) === rowKey(t) ? { ...x, paid } : x)))
+        refresh()
+    }
+
     function refresh() {
         api(`/finance/transactions?month=${month}`)
             .then(setItems)
             .catch(err => setError(err.message))
     }
+
+    const expenses = items.filter(t => t.type === 'EXPENSE')
 
     const totals = summarize(items)
     const segments = buildSegments(items)
@@ -270,6 +277,7 @@ export default function FinancePanel() {
             <span className="fin-sub">
                 {t.installmentTotal > 1 ? `${t.installmentNumber}/${t.installmentTotal} · ` : ''}
                             {t.recurringId ? '🔁 Fixo · ' : ''}
+                            {t.type === 'EXPENSE' && t.paid ? <span className="fin-paid-tag">✓ Pago · </span> : ''}
                             {t.category && t.description ? `${t.category.name} · ` : ''}
                             {formatDay(t.date)}
                                 {remainingLabel(t.date) && (
@@ -321,6 +329,8 @@ export default function FinancePanel() {
                 open={modalOpen}
                 transaction={editing}
                 month={month}
+                expenses={expenses}
+                onPaid={markPaid}
                 onClose={() => setModalOpen(false)}
                 onSaved={handleSaved}
                 onCategoriesChanged={refresh}

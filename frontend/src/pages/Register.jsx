@@ -1,14 +1,18 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { api } from '../api'
+import { useAuth } from '../AuthContext'
 import '../styles/auth.css'
 import ThemeToggle from "../components/ThemeToggle.jsx";
 import Logo from "../components/Logo.jsx";
 import PasswordStrength from '../components/PasswordStrength'
 import { isStrongPassword } from '../password'
 
+const RESEND_SECONDS = 60
+
 export default function Register() {
     const navigate = useNavigate()
+    const { login } = useAuth()
 
     const [form, setForm] = useState({
         name: '',
@@ -21,6 +25,23 @@ export default function Register() {
     const [showPassword, setShowPassword] = useState(false)
     const [showConfirmPassword, setShowConfirmPassword] = useState(false)
     const [confirmPassword, setConfirmPassword] = useState('')
+
+    // etapa 2: confirmação do código enviado por e-mail
+    const [step, setStep] = useState('form')
+    const [code, setCode] = useState('')
+    const [cooldown, setCooldown] = useState(0)
+    const [notice, setNotice] = useState('')
+    const codeRef = useRef(null)
+
+    useEffect(() => {
+        if (cooldown <= 0) return
+        const timer = setTimeout(() => setCooldown(c => c - 1), 1000)
+        return () => clearTimeout(timer)
+    }, [cooldown])
+
+    useEffect(() => {
+        if (step === 'code') codeRef.current?.focus()
+    }, [step])
 
     const update = field => e => {
         setForm(prev => ({
@@ -49,7 +70,10 @@ export default function Register() {
                 body: form
             })
 
-            navigate('/login')
+            setCode('')
+            setNotice('')
+            setCooldown(RESEND_SECONDS)
+            setStep('code')
         } catch (err) {
             setError(
                 err.message || 'Não foi possível criar sua conta. Tente novamente.'
@@ -59,6 +83,141 @@ export default function Register() {
         }
     }
 
+
+    async function handleVerify(e) {
+        e.preventDefault()
+        setError('')
+        setNotice('')
+        setLoading(true)
+
+        try {
+            await api('/auth/register/verify', {
+                method: 'POST',
+                body: { email: form.email, code }
+            })
+
+            try {
+                await login(form.email.trim(), form.password)
+                navigate('/home')
+            } catch {
+                navigate('/login', { state: { notice: 'Conta criada! Entre com seu e-mail e senha.' } })
+            }
+        } catch (err) {
+            setError(err.message || 'Não foi possível confirmar o código.')
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    async function handleResend() {
+        setError('')
+        setNotice('')
+        try {
+            await api('/auth/register/resend', {
+                method: 'POST',
+                body: { email: form.email }
+            })
+            setCode('')
+            setCooldown(RESEND_SECONDS)
+            setNotice('Enviamos um novo código.')
+            codeRef.current?.focus()
+        } catch (err) {
+            setError(err.message || 'Não foi possível reenviar o código.')
+        }
+    }
+
+    function backToForm() {
+        setStep('form')
+        setError('')
+        setNotice('')
+    }
+
+    if (step === 'code') {
+        return (
+            <main className="auth-page">
+                <ThemeToggle className="is-floating" />
+
+                <Link to="/login" className="brand" aria-label="objetividade - início">
+                    <Logo />
+                    <span>Objetividade</span>
+                </Link>
+
+                <section className="auth-card">
+                    <p className="auth-eyebrow">Confirme seu e-mail</p>
+
+                    <h1 className="auth-title">Digite o código.</h1>
+
+                    <p className="auth-description">
+                        Enviamos um código de 6 dígitos para{' '}
+                        <strong className="auth-strong">{form.email.trim()}</strong>.
+                        Ele vale por 15 minutos.
+                    </p>
+
+                    <form className="auth-form" onSubmit={handleVerify}>
+                        <div className="form-field">
+                            <label className="form-label" htmlFor="code">
+                                Código de confirmação
+                            </label>
+
+                            <input
+                                ref={codeRef}
+                                className="form-input code-input"
+                                id="code"
+                                type="text"
+                                inputMode="numeric"
+                                autoComplete="one-time-code"
+                                placeholder="000000"
+                                maxLength={6}
+                                value={code}
+                                onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                                required
+                            />
+                        </div>
+
+                        {error && (
+                            <p className="auth-error" role="alert">
+                                {error}
+                            </p>
+                        )}
+
+                        {notice && (
+                            <p className="auth-notice" role="status">
+                                {notice}
+                            </p>
+                        )}
+
+                        <button
+                            className="primary-button"
+                            type="submit"
+                            disabled={loading || code.length !== 6}
+                        >
+                            {loading ? 'Confirmando...' : 'Confirmar e criar conta'}
+                            {!loading && <span aria-hidden="true">→</span>}
+                        </button>
+                    </form>
+
+                    <p className="auth-footer">
+                        Não recebeu?{' '}
+                        {cooldown > 0 ? (
+                            <span>Reenviar em {cooldown}s</span>
+                        ) : (
+                            <button type="button" className="auth-link auth-link-button" onClick={handleResend}>
+                                Reenviar código
+                            </button>
+                        )}
+                        <br />
+                        <button type="button" className="auth-link auth-link-button auth-back" onClick={backToForm}>
+                            Alterar e-mail
+                        </button>
+                    </p>
+                </section>
+
+                <p className="auth-legal">
+                    Confira também a caixa de spam.
+                </p>
+            </main>
+        )
+    }
 
     return (
         <main className="auth-page">
@@ -261,7 +420,7 @@ export default function Register() {
                         type="submit"
                         disabled={loading}
                     >
-                        {loading ? 'Criando conta...' : 'Criar minha conta'}
+                        {loading ? 'Enviando código...' : 'Criar minha conta'}
                         {!loading && <span aria-hidden="true">→</span>}
                     </button>
                 </form>

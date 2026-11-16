@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Optional;
 
 public interface RecurringTransactionRepository extends JpaRepository<RecurringTransaction, Long> {
+    boolean existsByUser(User user);
 
     List<RecurringTransaction> findByUser(User user);
 

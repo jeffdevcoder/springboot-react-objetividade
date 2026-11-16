@@ -79,6 +79,20 @@ public class FinanceController {
         return service.update(principal.getName(), id, body);
     }
 
+    @PutMapping("/transactions/{id}/paid")
+    public TransactionView setPaid(@PathVariable Long id, @RequestBody PaidRequest body, Principal principal) {
+        return service.setPaid(principal.getName(), id, body.paid());
+    }
+
+    @PutMapping("/recurring/{id}/paid")
+    public TransactionView setRecurringPaid(
+            @PathVariable Long id,
+            @RequestParam @DateTimeFormat(pattern = "yyyy-MM") YearMonth month,
+            @RequestBody PaidRequest body,
+            Principal principal) {
+        return service.setRecurringPaid(principal.getName(), id, month, body.paid());
+    }
+
     @PutMapping("/recurring/{id}")
     public TransactionView updateRecurring(
             @PathVariable Long id,

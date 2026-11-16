@@ -5,15 +5,21 @@ import DateField from '../DateField'
 import EmojiPicker from '../EmojiPicker'
 import InstallmentPicker from './InstallmentPicker'
 
+const formatDay = iso => iso.split('-').reverse().join('/')
+const rowKey = t => (t.id !== null ? `t${t.id}` : `r${t.recurringId}`)
+
 const TYPES = [
     ['INCOME', 'Receita'],
     ['EXPENSE', 'Gasto'],
+    ['PAY', 'Conta foi paga?'],
 ]
 
 const DEFAULT_EMOJI = '🏷️'
 const today = () => new Date().toLocaleDateString('en-CA')
 
-export default function TransactionModal({ open, transaction, month, onClose, onSaved, onCategoriesChanged }) {
+export default function TransactionModal({
+    open, transaction, month, expenses = [], onClose, onSaved, onPaid, onCategoriesChanged,
+}) {
     const editing = Boolean(transaction)
     const wasFixed = editing && Boolean(transaction.recurringId)
 
@@ -39,6 +45,9 @@ export default function TransactionModal({ open, transaction, month, onClose, on
     const [wasOpen, setWasOpen] = useState(false)
     const amountRef = useRef(null)
     const [installments, setInstallments] = useState('1')
+    const [paid, setPaid] = useState(false)
+    const [payPick, setPayPick] = useState(null)
+    const [paying, setPaying] = useState(false)
 
     if (open !== wasOpen) {
         setWasOpen(open)
@@ -51,6 +60,7 @@ export default function TransactionModal({ open, transaction, month, onClose, on
                 setCategoryId(transaction.category ? transaction.category.id : null)
                 setMonthly(Boolean(transaction.recurringId))
                 setInstallments(transaction.installmentTotal > 1 ? String(transaction.installmentTotal) : '1')
+                setPaid(Boolean(transaction.paid))
             } else {
                 setType('INCOME')
                 setAmount('')
@@ -64,6 +74,7 @@ export default function TransactionModal({ open, transaction, month, onClose, on
             setEmojiOpen(false)
             setInstallOpen(false)
             setConfirmDelete(false)
+            setPayPick(null)
             setError('')
         }
     }
@@ -100,8 +111,26 @@ export default function TransactionModal({ open, transaction, month, onClose, on
     )
     const freeColors = paletteFor(type).filter(c => !takenByOthers.has(c.hex))
 
+    async function confirmPaid(t, paid = true) {
+        setPaying(true)
+        setError('')
+        try {
+            const url = t.recurringId
+                ? `/finance/recurring/${t.recurringId}/paid?month=${month}`
+                : `/finance/transactions/${t.id}/paid`
+            await api(url, { method: 'PUT', body: { paid } })
+            onPaid?.(t, paid)
+            setPayPick(null)
+        } catch (err) {
+            setError(err.message)
+        } finally {
+            setPaying(false)
+        }
+    }
+
     function changeType(next) {
         setType(next)
+        setPayPick(null)
         setCategoryId(null)
         setEditor(null)
         setEmojiOpen(false)
@@ -205,6 +234,7 @@ export default function TransactionModal({ open, transaction, month, onClose, on
 
     async function handleSubmit(e) {
         e.preventDefault()
+        if (payMode) return
         setError('')
 
         const amountCents = parseMoney(amount)
@@ -244,6 +274,15 @@ export default function TransactionModal({ open, transaction, month, onClose, on
                 saved = await api(`/finance/transactions/${transaction.id}`, { method: 'PUT', body })
             }
 
+            if (editing && saved.type === 'EXPENSE' && saved.paid !== paid) {
+                saved = saved.recurringId
+                    ? await api(`/finance/recurring/${saved.recurringId}/paid?month=${saved.date.slice(0, 7)}`, {
+                        method: 'PUT',
+                        body: { paid },
+                    })
+                    : await api(`/finance/transactions/${saved.id}/paid`, { method: 'PUT', body: { paid } })
+            }
+
             onSaved(saved)
             onClose()
         } catch (err) {
@@ -252,6 +291,10 @@ export default function TransactionModal({ open, transaction, month, onClose, on
             setSaving(false)
         }
     }
+
+    const payMode = type === 'PAY'
+    const types = TYPES.filter(([value]) => value !== 'PAY' || (!editing && expenses.length > 0))
+    const pendingCount = expenses.filter(t => !t.paid).length
 
     const invalid = !amount.trim() || !date || (!description.trim() && !categoryId)
     const installmentsN = Math.min(Math.max(parseInt(installments, 10) || 1, 1), 60)
@@ -270,12 +313,41 @@ export default function TransactionModal({ open, transaction, month, onClose, on
     return (
         <div className={`task-overlay ${open ? 'is-open' : ''}`} onMouseDown={onClose}>
             <form className="task-modal" onSubmit={handleSubmit} onMouseDown={e => e.stopPropagation()}>
-                <h2>{editing ? 'Editar lançamento' : 'Novo lançamento'}</h2>
+                <h2>{payMode ? 'Conta foi paga?' : editing ? 'Editar lançamento' : 'Novo lançamento'}</h2>
 
                 <div className="task-modal-body">
+                    {editing && type === 'EXPENSE' && (
+                        <div className="fin-paid">
+                            <span className="form-label">Isso foi pago?</span>
+                            <div className="fin-paid-toggle" role="radiogroup" aria-label="Isso foi pago?">
+                                <button
+                                    type="button"
+                                    role="radio"
+                                    aria-checked={paid}
+                                    className={`fin-paid-opt ${paid ? 'is-yes' : ''}`}
+                                    onClick={() => setPaid(true)}
+                                >
+                                    Sim
+                                </button>
+                                <button
+                                    type="button"
+                                    role="radio"
+                                    aria-checked={!paid}
+                                    className={`fin-paid-opt ${!paid ? 'is-no' : ''}`}
+                                    onClick={() => setPaid(false)}
+                                >
+                                    Não
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
                     <div className="task-options" role="radiogroup" aria-label="Tipo">
-                        {TYPES.map(([value, label]) => (
-                            <label key={value} className={value === 'INCOME' ? 'opt-income' : 'opt-expense'}>
+                        {types.map(([value, label]) => (
+                            <label
+                                key={value}
+                                className={value === 'INCOME' ? 'opt-income' : value === 'EXPENSE' ? 'opt-expense' : 'opt-pay'}
+                            >
                                 <input
                                     type="radio"
                                     name="fin-type"
@@ -289,6 +361,51 @@ export default function TransactionModal({ open, transaction, month, onClose, on
                         ))}
                     </div>
 
+                    {payMode ? (
+                        <div className="fin-field">
+                            <p className="fin-sub fin-pay-hint">
+                                {pendingCount > 0
+                                    ? `${pendingCount} ${pendingCount === 1 ? 'gasto pendente' : 'gastos pendentes'} neste mês. Ao confirmar, entra uma receita em "Contas pagas" com o mesmo valor.`
+                                    : 'Todos os gastos deste mês estão pagos. Toque num gasto para desfazer.'}
+                            </p>
+                            <ul className="fin-list">
+                                {expenses.map(t => (
+                                    <li key={rowKey(t)} className={`fin-row ${t.paid ? 'is-paid' : ''}`}>
+                                        <button
+                                            type="button"
+                                            className="fin-open"
+                                            onClick={() => setPayPick(k => (k === rowKey(t) ? null : rowKey(t)))}
+                                        >
+                                            <div className="fin-main">
+                                                <span className="fin-title">
+                                                    {t.description || (t.category ? t.category.name : 'Gasto')}
+                                                </span>
+                                                <span className="fin-sub">
+                                                    {t.installmentTotal > 1 ? `${t.installmentNumber}/${t.installmentTotal} · ` : ''}
+                                                    {t.recurringId ? '🔁 Fixo · ' : ''}
+                                                    {formatDay(t.date)}
+                                                </span>
+                                            </div>
+                                            <span className="fin-amount is-expense">− {formatMoney(t.amountCents)}</span>
+                                        </button>
+
+                                        {payPick === rowKey(t) ? (
+                                            <button
+                                                type="button"
+                                                className={`fin-pay-confirm ${t.paid ? 'is-undo' : ''}`}
+                                                disabled={paying}
+                                                onClick={() => confirmPaid(t, !t.paid)}
+                                            >
+                                                {t.paid ? 'Desfazer' : 'Confirmar'}
+                                            </button>
+                                        ) : t.paid && (
+                                            <span className="fin-paid-tag fin-pay-state">✓ Pago</span>
+                                        )}
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    ) : (<>
                     <div className="fin-field">
                         <label className="form-label" htmlFor="fin-amount">Valor (R$)</label>
                         <input
@@ -520,14 +637,20 @@ export default function TransactionModal({ open, transaction, month, onClose, on
                         </div>
                     )}
 
+                    </>)}
+
                     {error && <p className="task-error">{error}</p>}
                 </div>
 
                 <div className="task-actions">
-                    <button type="button" className="task-btn" onClick={onClose}>Cancelar</button>
-                    <button type="submit" className="task-btn is-primary" disabled={saving || invalid}>
-                        {editing ? 'Salvar' : 'Adicionar'}
+                    <button type="button" className="task-btn" onClick={onClose}>
+                        {payMode ? 'Fechar' : 'Cancelar'}
                     </button>
+                    {!payMode && (
+                        <button type="submit" className="task-btn is-primary" disabled={saving || invalid}>
+                            {editing ? 'Salvar' : 'Adicionar'}
+                        </button>
+                    )}
                 </div>
             </form>
         </div>

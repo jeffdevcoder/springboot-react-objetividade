@@ -9,6 +9,7 @@ import java.util.Optional;
 public interface FinanceCategoryRepository extends JpaRepository<FinanceCategory, Long> {
     List<FinanceCategory> findByUserOrderByIdAsc(User user);
     Optional<FinanceCategory> findByIdAndUser(Long id, User user);
+    Optional<FinanceCategory> findFirstByUserAndNameIgnoreCase(User user, String name);
     boolean existsByUserAndNameIgnoreCaseAndIdNot(User user, String name, Long id);
     boolean existsByUserAndColorIgnoreCaseAndIdNot(User user, String color, Long id);
 }

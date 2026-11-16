@@ -46,6 +46,13 @@ public class Transaction {
     @Column(name = "installment_total")
     private Integer installmentTotal;
 
+    @Column(name = "paid")
+    private Boolean paid;
+
+    /** Receita "Contas pagas" gerada quando este gasto foi marcado como pago. */
+    @Column(name = "paid_income_id")
+    private Long paidIncomeId;
+
     public Long getId() { return id; }
     public User getUser() { return user; }
     public void setUser(User user) { this.user = user; }
@@ -65,4 +72,8 @@ public class Transaction {
     public void setInstallmentNumber(Integer n) { this.installmentNumber = n; }
     public Integer getInstallmentTotal() { return installmentTotal; }
     public void setInstallmentTotal(Integer n) { this.installmentTotal = n; }
+    public boolean isPaid() { return Boolean.TRUE.equals(paid); }
+    public void setPaid(boolean paid) { this.paid = paid; }
+    public Long getPaidIncomeId() { return paidIncomeId; }
+    public void setPaidIncomeId(Long id) { this.paidIncomeId = id; }
 }

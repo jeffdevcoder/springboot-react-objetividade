@@ -333,8 +333,6 @@ export default function Pomodoro({ subjects, selectId, onSaved, onManage }) {
                 </button>
             ))}
 
-            {locked && <p className="study-note">Pause para trocar de matéria</p>}
-
             <div className="cat-chips study-subjects">
                 {subjects.map(s => (
                     <div key={s.id} className="cat-item">

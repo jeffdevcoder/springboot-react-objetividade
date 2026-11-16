@@ -92,7 +92,6 @@
 .study-session-full { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.5; }
 .study-session-full.is-empty { color: var(--color-muted); font-style: italic; }
 
-.study-note { margin: 0; color: var(--color-muted); font-size: 12px; }
 
 .study-controls { display: flex; align-items: center; gap: 10px; }
 .study-controls .task-btn { padding: 0.6rem 1.5rem; border-color: var(--color-border); }

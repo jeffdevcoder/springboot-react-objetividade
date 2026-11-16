@@ -121,6 +121,8 @@ export default function Today() {
         const saved = localStorage.getItem('section')
         return ['finance', 'study', 'notes', 'goals'].includes(saved) ? saved : 'tasks'
     })
+    // só anima a troca depois de um clique (no carregamento, quem anima é a entrada da página)
+    const [switched, setSwitched] = useState(false)
 
     useLayoutEffect(() => {
         const list = listRef.current
@@ -146,6 +148,8 @@ export default function Today() {
     const closeModal = useCallback(() => setModal(m => ({ ...m, open: false })), [])
 
     function chooseSection(next) {
+        if (next === section) return
+        setSwitched(true)
         setSection(next)
         try { localStorage.setItem('section', next) } catch { /* sem armazenamento */ }
     }
@@ -359,7 +363,7 @@ export default function Today() {
                 <div className="dashboard-heading">
                     <p className="dashboard-date">Seu espaço pessoal</p>
 
-                    <h1 className="dashboard-title">
+                    <h1 className={`dashboard-title ${switched ? 'section-swap' : ''}`} key={`t-${section}`}>
                         {section === 'finance'
                             ? 'Suas finanças.'
                             : section === 'study'
@@ -371,7 +375,7 @@ export default function Today() {
                                         : isToday ? 'Checklist de hoje.' : 'Checklist do dia.'}
                     </h1>
 
-                    <p className="dashboard-subtitle">
+                    <p className={`dashboard-subtitle ${switched ? 'section-swap' : ''}`} key={`s-${section}`}>
                         {section === 'finance'
                             ? 'Receitas, gastos e saldo do mês, num só lugar.'
                             : section === 'study'
@@ -432,6 +436,7 @@ export default function Today() {
                     </button>
                 </div>
 
+                <div className={switched ? 'section-view' : undefined} key={section}>
                 {section === 'tasks' ? (
                 <section className="dashboard-panel">
                     <div className="panel-header">
@@ -668,6 +673,7 @@ export default function Today() {
                 ) : (
                     <StudyPanel />
                 )}
+                </div>
                 <p className="dashboard-footer">
                     Feito para manter as coisas simples.
                 </p>

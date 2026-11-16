@@ -18,15 +18,18 @@ public class FinanceService {
     private final TransactionRepository repository;
     private final RecurringTransactionRepository recurringRepo;
     private final FinanceCategoryRepository categoryRepo;
+    private final RecurringPaymentRepository paymentRepo;
     private final UserRepository users;
 
     public FinanceService(TransactionRepository repository,
                           RecurringTransactionRepository recurringRepo,
                           FinanceCategoryRepository categoryRepo,
+                          RecurringPaymentRepository paymentRepo,
                           UserRepository users) {
         this.repository = repository;
         this.recurringRepo = recurringRepo;
         this.categoryRepo = categoryRepo;
+        this.paymentRepo = paymentRepo;
         this.users = users;
     }
 
@@ -53,13 +56,17 @@ public class FinanceService {
                 .toList());
 
         LocalDate monthStart = month.atDay(1);
-        for (RecurringTransaction r : recurringRepo.findByUser(user)) {
-            boolean started = !r.getStartMonth().isAfter(monthStart);
-            boolean ended = r.getEndMonth() != null && r.getEndMonth().isBefore(monthStart);
-            if (started && !ended) {
-                int day = Math.min(r.getDayOfMonth(), month.lengthOfMonth());
-                result.add(TransactionView.ofRecurring(r, month.atDay(day)));
-            }
+        List<RecurringTransaction> active = recurringRepo.findByUser(user).stream()
+                .filter(r -> !r.getStartMonth().isAfter(monthStart))
+                .filter(r -> r.getEndMonth() == null || !r.getEndMonth().isBefore(monthStart))
+                .toList();
+        Set<Long> paidRecurring = active.isEmpty() ? Set.of()
+                : paymentRepo.findByRecurringInAndMonth(active, monthStart).stream()
+                        .map(p -> p.getRecurring().getId())
+                        .collect(Collectors.toSet());
+        for (RecurringTransaction r : active) {
+            int day = Math.min(r.getDayOfMonth(), month.lengthOfMonth());
+            result.add(TransactionView.ofRecurring(r, month.atDay(day), paidRecurring.contains(r.getId())));
         }
 
         result.sort(Comparator.comparing(TransactionView::date).reversed());
@@ -149,8 +156,11 @@ public class FinanceService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
 
         if (t.getInstallmentGroup() != null) {
-            repository.deleteAll(repository.findByUserAndInstallmentGroup(user, t.getInstallmentGroup()));
+            List<Transaction> group = repository.findByUserAndInstallmentGroup(user, t.getInstallmentGroup());
+            group.forEach(x -> beforeDelete(user, x));
+            repository.deleteAll(group);
         } else {
+            beforeDelete(user, t);
             repository.delete(t);
         }
     }
@@ -159,11 +169,169 @@ public class FinanceService {
     public void endRecurring(String email, Long id, YearMonth from) {
         RecurringTransaction r = recurringRepo.findByIdAndUser(id, user(email))
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        endSeriesBefore(r, from);
+    }
 
-        if (!from.atDay(1).isAfter(r.getStartMonth())) {
-            recurringRepo.delete(r);
+    @Transactional
+    public TransactionView setPaid(String email, Long id, boolean paid) {
+        Transaction t = repository.findByIdAndUser(id, user(email))
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        requireExpense(t.getType());
+        markPaid(t, paid);
+        return TransactionView.of(t);
+    }
+
+    @Transactional
+    public TransactionView setRecurringPaid(String email, Long id, YearMonth month, boolean paid) {
+        RecurringTransaction r = recurringRepo.findByIdAndUser(id, user(email))
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        requireExpense(r.getType());
+
+        LocalDate monthStart = month.atDay(1);
+        boolean active = !r.getStartMonth().isAfter(monthStart)
+                && (r.getEndMonth() == null || !r.getEndMonth().isBefore(monthStart));
+        if (!active) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Esse gasto fixo não existe nesse mês");
+        }
+
+        int day = Math.min(r.getDayOfMonth(), month.lengthOfMonth());
+        LocalDate date = month.atDay(day);
+
+        Optional<RecurringPayment> existing = paymentRepo.findByRecurringAndMonth(r, monthStart);
+        if (paid && existing.isEmpty()) {
+            RecurringPayment p = new RecurringPayment();
+            p.setRecurring(r);
+            p.setMonth(monthStart);
+            p.setIncomeId(createPaidIncome(r.getUser(), r.getAmountCents(),
+                    paidLabel(r.getDescription(), r.getCategory())).getId());
+            paymentRepo.save(p);
+        } else if (!paid) {
+            existing.ifPresent(this::dropPayment);
+        }
+
+        return TransactionView.ofRecurring(r, date, paid);
+    }
+
+    // ---- receita automática "Contas pagas" ----
+
+    private static final String PAID_CATEGORY = "Contas pagas";
+    private static final String PAID_EMOJI = "✅";
+    private static final String PAID_PREFERRED_COLOR = "#10B981";
+
+    /** Marca/desmarca um gasto comum ou parcela, criando/removendo a receita "Contas pagas". */
+    private void markPaid(Transaction t, boolean paid) {
+        if (paid) {
+            if (t.getPaidIncomeId() == null || repository.findById(t.getPaidIncomeId()).isEmpty()) {
+                Transaction income = createPaidIncome(t.getUser(), t.getAmountCents(),
+                        paidLabel(t.getDescription(), t.getCategory()));
+                t.setPaidIncomeId(income.getId());
+            } else {
+                syncPaidIncome(t);
+            }
+            t.setPaid(true);
         } else {
-            r.setEndMonth(from.minusMonths(1).atDay(1));
+            if (t.getPaidIncomeId() != null) {
+                repository.findById(t.getPaidIncomeId()).ifPresent(repository::delete);
+                t.setPaidIncomeId(null);
+            }
+            t.setPaid(false);
+        }
+    }
+
+    /** Mantém a receita automática com o mesmo valor do gasto (a data continua a do pagamento). */
+    private void syncPaidIncome(Transaction t) {
+        if (!t.isPaid() || t.getPaidIncomeId() == null) return;
+        repository.findById(t.getPaidIncomeId())
+                .ifPresent(income -> income.setAmountCents(t.getAmountCents()));
+    }
+
+    /** Limpa os vínculos de pagamento antes de excluir um lançamento. */
+    private void beforeDelete(User user, Transaction t) {
+        if (t.getType() == TransactionType.EXPENSE) {
+            markPaid(t, false);
+            return;
+        }
+        // é uma receita automática? o gasto correspondente volta a ficar pendente
+        repository.findFirstByUserAndPaidIncomeId(user, t.getId()).ifPresent(expense -> {
+            expense.setPaidIncomeId(null);
+            expense.setPaid(false);
+        });
+        paymentRepo.findByIncomeId(t.getId()).ifPresent(paymentRepo::delete);
+    }
+
+    private void dropPayment(RecurringPayment p) {
+        if (p.getIncomeId() != null) repository.findById(p.getIncomeId()).ifPresent(repository::delete);
+        paymentRepo.delete(p);
+    }
+
+    /** Remove os pagamentos do fixo a partir de {@code fromMonth} (todos, se null). */
+    private void dropPayments(RecurringTransaction r, LocalDate fromMonth) {
+        for (RecurringPayment p : paymentRepo.findByRecurring(r)) {
+            if (fromMonth == null || !p.getMonth().isBefore(fromMonth)) dropPayment(p);
+        }
+    }
+
+    /** Após editar um fixo, ajusta o valor das receitas automáticas dos meses afetados. */
+    private void syncRecurringPayments(RecurringTransaction r, LocalDate fromMonth) {
+        for (RecurringPayment p : paymentRepo.findByRecurring(r)) {
+            if (p.getMonth().isBefore(fromMonth)) continue;
+            if (p.getMonth().isBefore(r.getStartMonth())
+                    || (r.getEndMonth() != null && p.getMonth().isAfter(r.getEndMonth()))) {
+                dropPayment(p);
+                continue;
+            }
+            if (p.getIncomeId() == null) continue;
+            repository.findById(p.getIncomeId())
+                    .ifPresent(income -> income.setAmountCents(r.getAmountCents()));
+        }
+    }
+
+    /** A receita entra com a data de hoje: o dia em que a conta foi paga. */
+    private Transaction createPaidIncome(User user, long amountCents, String description) {
+        FinanceCategory category = paidCategory(user);
+        Transaction income = new Transaction();
+        income.setUser(user);
+        income.setType(TransactionType.INCOME);
+        income.setAmountCents(amountCents);
+        income.setDescription(category == null && description.isEmpty() ? PAID_CATEGORY : description);
+        income.setCategory(category);
+        income.setDate(LocalDate.now());
+        return repository.save(income);
+    }
+
+    /** Categoria de receita "Contas pagas", criada na primeira vez que for necessária. */
+    private FinanceCategory paidCategory(User user) {
+        Optional<FinanceCategory> existing = categoryRepo.findFirstByUserAndNameIgnoreCase(user, PAID_CATEGORY);
+        if (existing.isPresent()) {
+            return existing.get().getType() == TransactionType.INCOME ? existing.get() : null;
+        }
+
+        Set<String> taken = categoryRepo.findByUserOrderByIdAsc(user).stream()
+                .map(c -> c.getColor().toUpperCase())
+                .collect(Collectors.toSet());
+        List<String> colors = new ArrayList<>(new TreeSet<>(FinancePalette.INCOME));
+        colors.remove(PAID_PREFERRED_COLOR);
+        colors.add(0, PAID_PREFERRED_COLOR);
+        String color = colors.stream().filter(c -> !taken.contains(c)).findFirst().orElse(null);
+        if (color == null) return null;
+
+        FinanceCategory c = new FinanceCategory();
+        c.setUser(user);
+        c.setType(TransactionType.INCOME);
+        c.setName(PAID_CATEGORY);
+        c.setEmoji(PAID_EMOJI);
+        c.setColor(color);
+        return categoryRepo.save(c);
+    }
+
+    private String paidLabel(String description, FinanceCategory category) {
+        if (description != null && !description.isBlank()) return description;
+        return category != null ? category.getName() : "";
+    }
+
+    private void requireExpense(TransactionType type) {
+        if (type != TransactionType.EXPENSE) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Apenas gastos podem ser marcados como pagos");
         }
     }
 
@@ -247,6 +415,7 @@ public class FinanceService {
         }
 
         if (req.monthly()) {
+            beforeDelete(user, t);
             repository.delete(t);
             RecurringTransaction r = newRecurring(user, req, category, description, date);
             recurringRepo.save(r);
@@ -254,6 +423,7 @@ public class FinanceService {
         }
 
         t.setType(req.type());
+        if (req.type() != TransactionType.EXPENSE) markPaid(t, false);
         t.setAmountCents(req.amountCents());
         t.setDescription(description);
         t.setCategory(category);
@@ -265,6 +435,7 @@ public class FinanceService {
             }
             redateInstallments(user, t, date);
         }
+        syncPaidIncome(t);
         return TransactionView.of(t);
     }
 
@@ -303,6 +474,7 @@ public class FinanceService {
         RecurringTransaction target = old; // no primeiro mês, edita o próprio fixo
         if (fromStart.isAfter(old.getStartMonth()) && !newStart.isBefore(fromStart)) {
             LocalDate oldEnd = old.getEndMonth();
+            dropPayments(old, fromStart);
             old.setEndMonth(from.minusMonths(1).atDay(1));
 
             target = new RecurringTransaction();
@@ -317,6 +489,7 @@ public class FinanceService {
         target.setCategory(category);
         target.setDayOfMonth(day);
         recurringRepo.save(target);
+        if (target == old) syncRecurringPayments(target, fromStart);
 
         LocalDate shown = req.date() != null
                 ? req.date()
@@ -340,6 +513,7 @@ public class FinanceService {
     private void redateInstallments(User user, Transaction current, LocalDate date) {
         for (Transaction x : repository.findByUserAndInstallmentGroup(user, current.getInstallmentGroup())) {
             x.setDate(date.plusMonths(x.getInstallmentNumber() - current.getInstallmentNumber()));
+            syncPaidIncome(x);
         }
     }
 
@@ -359,7 +533,10 @@ public class FinanceService {
 
         if (newTotal < oldTotal) {
             for (Transaction x : group) {
-                if (x.getInstallmentNumber() > newTotal) repository.delete(x);
+                if (x.getInstallmentNumber() > newTotal) {
+                    beforeDelete(user, x);
+                    repository.delete(x);
+                }
             }
         } else {
             for (int i = oldTotal + 1; i <= newTotal; i++) {
@@ -384,8 +561,10 @@ public class FinanceService {
 
     private void endSeriesBefore(RecurringTransaction r, YearMonth from) {
         if (!from.atDay(1).isAfter(r.getStartMonth())) {
+            dropPayments(r, null);
             recurringRepo.delete(r);
         } else {
+            dropPayments(r, from.atDay(1));
             r.setEndMonth(from.minusMonths(1).atDay(1));
         }
     }

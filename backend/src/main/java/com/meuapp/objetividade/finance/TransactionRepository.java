@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Optional;
 
 public interface TransactionRepository extends JpaRepository<Transaction, Long> {
+    boolean existsByUser(User user);
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("update Transaction t set t.category = null where t.category = :category")
     void clearCategory(@Param("category") FinanceCategory category);
@@ -21,4 +22,6 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
 
     List<Transaction> findByUserAndInstallmentGroup(User user, String installmentGroup);
     List<Transaction> findByUserAndInstallmentGroupIn(User user, Collection<String> groups);
+
+    Optional<Transaction> findFirstByUserAndPaidIncomeId(User user, Long paidIncomeId);
 }

@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Optional;
 
 public interface StudySessionRepository extends JpaRepository<StudySession, Long> {
+    boolean existsByUser(User user);
     Optional<StudySession> findByIdAndUser(Long id, User user);
 
     List<StudySession> findByUserAndDateBetweenOrderByDateAscIdAsc(User user, LocalDate from, LocalDate to);
