@@ -9,6 +9,7 @@ import UserMenu from '../components/UserMenu'
 import { formatMoney } from '../finance'
 import { formatDuration } from '../study'
 import { deadlineLabel } from '../goals'
+import { tagHex } from '../tagColors'
 import { countdown, formatDate } from '../notes'
 import '../styles/auth.css'
 import '../styles/tasks.css'
@@ -329,37 +330,34 @@ function TasksCard({ data, noun }) {
                 />
             </div>
 
-            <div className="profile-columns">
-                <ItemList title="Feito" kind="done" items={data.doneItems} none="Nada marcado como feito ainda." />
-                <ItemList title="Não feito" kind="missed" items={data.missedItems} none="Tudo em dia. Nada ficou para trás!" />
-            </div>
+            <TagList tags={data.tags} />
         </Card>
     )
 }
 
-function ItemList({ title, kind, items, none }) {
+// feito / não feito por tag: barra na cor da tag mostra a parte feita
+function TagList({ tags }) {
     return (
-        <div className="profile-list">
-            <h4>
-                <span className={`profile-dot is-${kind}`} />
-                {title}
-            </h4>
-            {items.length === 0 ? (
-                <Empty>{none}</Empty>
-            ) : (
-                <ul>
-                    {items.map(it => (
-                        <li key={it.id}>
-                            <span className="profile-item-title">
-                                {it.emoji && <span aria-hidden="true">{it.emoji} </span>}
-                                {it.title}
-                            </span>
-                            {it.count > 1 && <span className="profile-pill">{it.count}×</span>}
-                        </li>
-                    ))}
-                </ul>
-            )}
-        </div>
+        <ul className="profile-shares">
+            {tags.map(t => {
+                const total = t.done + t.missed
+                const color = tagHex(t.color) ?? 'var(--color-muted)'
+                return (
+                    <li key={t.id ?? 'none'}>
+                        <div className="profile-share-top">
+                            <span className="profile-dot" style={{ background: color }} />
+                            <span className="profile-item-title">{t.name}</span>
+                            <strong>{t.done} de {total}</strong>
+                            <em>{pct(t.done, total)}%</em>
+                        </div>
+                        <div className="profile-progress-track">
+                            <div className="profile-progress-fill"
+                                 style={{ width: `${pct(t.done, total)}%`, background: color }} />
+                        </div>
+                    </li>
+                )
+            })}
+        </ul>
     )
 }
 
@@ -431,7 +429,6 @@ function StudyCard({ data, noun, period }) {
                 tip={d => (d.seconds ? formatDuration(d.seconds) : 'sem estudo')}
             />
 
-            <h4 className="profile-subtitle">Por matéria</h4>
             <ShareList
                 items={data.subjects.map(s => ({ ...s, value: s.seconds }))}
                 total={data.seconds}

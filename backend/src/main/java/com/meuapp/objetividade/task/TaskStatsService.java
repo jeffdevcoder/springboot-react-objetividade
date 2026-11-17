@@ -98,12 +98,10 @@ public class TaskStatsService {
 
         Map<Long, Task> byId = new HashMap<>();
         all.forEach(t -> byId.put(t.getId(), t));
-        List<TaskStatsView.Item> doneItems = items(perTask, byId, 0);
-        List<TaskStatsView.Item> missedItems = items(perTask, byId, 1);
 
         int percent = planned == 0 ? 0 : Math.round(doneTotal * 100f / planned);
         return new TaskStatsView(period, from, today, !all.isEmpty(),
-                planned, doneTotal, planned - doneTotal, percent, days, doneItems, missedItems);
+                planned, doneTotal, planned - doneTotal, percent, days, tags(perTask, byId));
     }
 
     private static void count(Map<LocalDate, int[]> perDay, Map<Long, int[]> perTask,
@@ -114,14 +112,26 @@ public class TaskStatsService {
         perTask.computeIfAbsent(t.getId(), k -> new int[2])[done ? 0 : 1]++;
     }
 
-    /** Lista as tarefas com contagem > 0 no índice pedido, da mais frequente para a menos. */
-    private static List<TaskStatsView.Item> items(Map<Long, int[]> perTask, Map<Long, Task> byId, int idx) {
-        return perTask.entrySet().stream()
-                .filter(e -> e.getValue()[idx] > 0)
-                .sorted((a, b) -> b.getValue()[idx] - a.getValue()[idx])
+    /** Soma feito / não feito por tag (tarefas sem tag ficam juntas), da tag mais programada para a menos. */
+    private static List<TaskStatsView.TagStat> tags(Map<Long, int[]> perTask, Map<Long, Task> byId) {
+        Map<Long, int[]> perTag = new LinkedHashMap<>();   // tag id (null = sem tag) -> [feitas, não feitas]
+        Map<Long, Tag> tagById = new HashMap<>();
+        perTask.forEach((taskId, counts) -> {
+            Tag tag = byId.get(taskId).getTag();
+            Long key = tag == null ? null : tag.getId();
+            if (tag != null) tagById.put(key, tag);
+            int[] sum = perTag.computeIfAbsent(key, k -> new int[2]);
+            sum[0] += counts[0];
+            sum[1] += counts[1];
+        });
+        return perTag.entrySet().stream()
+                .sorted((a, b) -> (b.getValue()[0] + b.getValue()[1]) - (a.getValue()[0] + a.getValue()[1]))
                 .map(e -> {
-                    Task t = byId.get(e.getKey());
-                    return new TaskStatsView.Item(t.getId(), t.getTitle(), t.getEmoji(), e.getValue()[idx]);
+                    Tag tag = tagById.get(e.getKey());
+                    return tag == null
+                            ? new TaskStatsView.TagStat(null, "Sem tag", null, e.getValue()[0], e.getValue()[1])
+                            : new TaskStatsView.TagStat(tag.getId(), tag.getName(), tag.getColor(),
+                                    e.getValue()[0], e.getValue()[1]);
                 })
                 .toList();
     }

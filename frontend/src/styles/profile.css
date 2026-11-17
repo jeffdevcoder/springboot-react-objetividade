@@ -384,21 +384,7 @@ html[data-theme='dark'] .profile-page {
 .profile-card:not(.is-wide) .profile-bar-value { background: var(--st-accent); }
 .profile-card:not(.is-wide) .profile-bar-fill { background: transparent; }
 
-/* listas feito / não feito */
-.profile-columns {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 24px;
-}
-.profile-list h4 {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin: 0 0 6px;
-    font-size: 13px;
-    font-weight: 700;
-}
-.profile-list ul,
+/* lista simples (notas) */
 .profile-list-plain {
     display: flex;
     flex-direction: column;
@@ -406,7 +392,6 @@ html[data-theme='dark'] .profile-page {
     padding: 0;
     list-style: none;
 }
-.profile-list li,
 .profile-list-plain li {
     display: flex;
     align-items: center;
@@ -415,9 +400,6 @@ html[data-theme='dark'] .profile-page {
     border-bottom: 1px solid var(--color-border);
     font-size: 13px;
 }
-.profile-list li { padding-left: 17px; }
-.profile-list .profile-muted { padding-left: 17px; }
-.profile-list li:last-child,
 .profile-list-plain li:last-child { border-bottom: 0; }
 
 /* estados vazios e carregamento */
@@ -467,7 +449,6 @@ html[data-theme='dark'] .profile-page {
     /* valores grandes (R$) não cabem 3 por linha: quebra em 2 colunas */
     .profile-stat { flex: 1 1 calc(50% - 5px); min-width: 0; }
     .profile-stat strong { font-size: 16px; }
-    .profile-columns { grid-template-columns: minmax(0, 1fr); gap: 16px; }
     .profile-summary { flex-direction: column; align-items: stretch; }
     .profile-ring { align-self: center; }
     .profile-question { font-size: 17px; }

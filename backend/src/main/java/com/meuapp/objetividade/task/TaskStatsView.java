@@ -14,12 +14,11 @@ public record TaskStatsView(
         int missed,
         int percent,
         List<Day> days,
-        List<Item> doneItems,
-        List<Item> missedItems) {
+        List<TagStat> tags) {
 
     /** future = dia que ainda não chegou (aparece vazio no gráfico). */
     public record Day(LocalDate date, int planned, int done, boolean future) {}
 
-    /** Uma tarefa e quantas vezes ela foi feita (ou deixou de ser) no período. */
-    public record Item(Long id, String title, String emoji, int count) {}
+    /** Feito / não feito somando as tarefas de uma tag (id e color nulos = tarefas sem tag). */
+    public record TagStat(Long id, String name, String color, int done, int missed) {}
 }
