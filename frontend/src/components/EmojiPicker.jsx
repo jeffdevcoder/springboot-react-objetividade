@@ -2,10 +2,35 @@ import { useEffect, useState } from 'react'
 import { usePopoverPosition } from '../usePopoverPosition'
 import '../styles/emoji.css'
 
+const RECENT_KEY = 'recentEmojis'
+const RECENT_MAX = 16
+
+function loadRecent() {
+    try {
+        const list = JSON.parse(localStorage.getItem(RECENT_KEY))
+        return Array.isArray(list) ? list.slice(0, RECENT_MAX) : []
+    } catch {
+        return []
+    }
+}
+
+function saveRecent(emoji) {
+    const next = [emoji, ...loadRecent().filter(e => e !== emoji)].slice(0, RECENT_MAX)
+    try { localStorage.setItem(RECENT_KEY, JSON.stringify(next)) } catch { /* sem armazenamento */ }
+}
+
 // Sem onSave: escolher um emoji já chama onSelect.
 // Com onSave: o emoji fica pendente até clicar em "Salvar".
-export default function EmojiPicker({ groups, value, onSelect, onSave, onClose }) {
-    const [group, setGroup] = useState(() => Math.max(groups.findIndex(g => g.emojis.includes(value)), 0))
+export default function EmojiPicker({ groups: baseGroups, value, onSelect, onSave, onClose }) {
+    // Lidos só na abertura, para a aba não se reordenar enquanto o picker está aberto.
+    const [groups] = useState(() => {
+        const recent = loadRecent()
+        return recent.length ? [{ name: 'Recentes', icon: '🕘', emojis: recent }, ...baseGroups] : baseGroups
+    })
+    const [group, setGroup] = useState(() => {
+        const own = groups.findIndex(g => g.name !== 'Recentes' && g.emojis.includes(value))
+        return Math.max(own, 0)
+    })
     const [pending, setPending] = useState(value ?? null)
     const confirm = Boolean(onSave)
     const [popRef, popStyle] = usePopoverPosition(confirm)
@@ -26,7 +51,10 @@ export default function EmojiPicker({ groups, value, onSelect, onSave, onClose }
 
     function pick(emoji) {
         if (confirm) setPending(emoji)
-        else onSelect(emoji)
+        else {
+            saveRecent(emoji)
+            onSelect(emoji)
+        }
     }
 
     return (
@@ -88,7 +116,10 @@ export default function EmojiPicker({ groups, value, onSelect, onSave, onClose }
                             type="button"
                             className="task-btn is-primary"
                             disabled={!pending || pending === value}
-                            onClick={() => onSave(pending)}
+                            onClick={() => {
+                                saveRecent(pending)
+                                onSave(pending)
+                            }}
                         >
                             Salvar
                         </button>

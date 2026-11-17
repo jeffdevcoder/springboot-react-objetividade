@@ -18,9 +18,12 @@ import '../styles/profile.css'
 const PERIODS = [
     { key: 'week', label: 'Semana', question: 'O que você fez nesta semana?', noun: 'nesta semana' },
     { key: 'month', label: 'Mês', question: 'O que você fez neste mês?', noun: 'neste mês' },
+    { key: 'year', label: 'Ano', question: 'O que você fez neste ano?', noun: 'neste ano' },
 ]
 
 const WEEKDAYS = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S']
+
+const MONTHS = ['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D']
 
 const pct = (part, total) => (total ? Math.round((part * 100) / total) : 0)
 const parseIso = iso => new Date(`${iso}T00:00:00`)
@@ -133,7 +136,7 @@ export default function Profile() {
                         <div className="profile-grid" key={stats.period}>
                             {stats.tasks && <TasksCard data={stats.tasks} noun={current.noun} />}
                             {stats.finance && <FinanceCard data={stats.finance} noun={current.noun} />}
-                            {stats.study && <StudyCard data={stats.study} noun={current.noun} month={stats.period === 'month'} />}
+                            {stats.study && <StudyCard data={stats.study} noun={current.noun} period={stats.period} />}
                             {stats.goals && <GoalsCard data={stats.goals} noun={current.noun} />}
                             {stats.notes && <NotesCard data={stats.notes} noun={current.noun} />}
                         </div>
@@ -211,15 +214,34 @@ function Stat({ value, label, tone }) {
 }
 
 // barras por dia: height = valor do dia em relação ao maior; fill = parte "feita"
-function DayBars({ days, month, value, fill, tip }) {
-    const max = Math.max(1, ...days.map(value))
+// no ano, os dias viram 12 barras (uma por mês), somando os campos numéricos
+function byMonth(days) {
+    const months = []
+    for (const d of days) {
+        const m = parseIso(d.date).getMonth()
+        const acc = months[m] ??= { date: d.date, future: true }
+        acc.future &&= d.future
+        for (const [k, v] of Object.entries(d)) {
+            if (typeof v === 'number') acc[k] = (acc[k] ?? 0) + v
+        }
+    }
+    return months.filter(Boolean)
+}
+
+function DayBars({ days, period, value, fill, tip }) {
+    const year = period === 'year'
+    const month = period === 'month'
+    const bars = year ? byMonth(days) : days
+    const max = Math.max(1, ...bars.map(value))
     return (
         <div className={`profile-bars ${month ? 'is-month' : ''}`}>
-            {days.map((d, i) => {
+            {bars.map((d, i) => {
                 const date = parseIso(d.date)
-                const label = month ? date.getDate() : WEEKDAYS[date.getDay()]
-                const showLabel = !month || i === 0 || (i + 1) % 5 === 0 || i === days.length - 1
-                const day = date.toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit' })
+                const label = year ? MONTHS[date.getMonth()] : month ? date.getDate() : WEEKDAYS[date.getDay()]
+                const showLabel = !month || i === 0 || (i + 1) % 5 === 0 || i === bars.length - 1
+                const day = year
+                    ? date.toLocaleDateString('pt-BR', { month: 'long' })
+                    : date.toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit' })
                 return (
                     <div key={d.date} className={`profile-bar ${d.future ? 'is-future' : ''}`}
                          title={`${day}: ${d.future ? 'ainda não chegou' : tip(d)}`}>
@@ -300,7 +322,7 @@ function TasksCard({ data, noun }) {
 
                 <DayBars
                     days={data.days}
-                    month={data.period === 'month'}
+                    period={data.period}
                     value={d => d.planned}
                     fill={d => pct(d.done, d.planned)}
                     tip={d => (d.planned ? `${d.done} de ${d.planned} feitas` : 'nada programado')}
@@ -385,7 +407,7 @@ function FinanceCard({ data, noun }) {
 
 /* ---------- estudos ---------- */
 
-function StudyCard({ data, noun, month }) {
+function StudyCard({ data, noun, period }) {
     if (data.seconds === 0) {
         return (
             <Card icon="📚" title="Estudos">
@@ -403,7 +425,7 @@ function StudyCard({ data, noun, month }) {
 
             <DayBars
                 days={data.days}
-                month={month}
+                period={period}
                 value={d => d.seconds}
                 fill={() => 100}
                 tip={d => (d.seconds ? formatDuration(d.seconds) : 'sem estudo')}

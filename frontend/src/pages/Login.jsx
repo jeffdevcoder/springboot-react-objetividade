@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../AuthContext'
+import { EMAIL_FEATURES } from '../features'
 import '../styles/auth.css'
 import Logo from '../components/Logo'
 import ThemeToggle from '../components/ThemeToggle'
@@ -72,9 +73,11 @@ export default function Login() {
                             <label className="form-label" htmlFor="password">
                                 Senha
                             </label>
-                            <Link className="auth-link auth-link-small" to="/forgot-password">
-                                Esqueceu a senha?
-                            </Link>
+                            {EMAIL_FEATURES && (
+                                <Link className="auth-link auth-link-small" to="/forgot-password">
+                                    Esqueceu a senha?
+                                </Link>
+                            )}
                         </div>
 
                         <div className="password-wrapper">

@@ -1,5 +1,6 @@
 package com.meuapp.objetividade.user;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -22,22 +23,34 @@ public class RegistrationService {
     private final UserService users;
     private final PasswordEncoder encoder;
     private final VerificationMailer mailer;
+    private final boolean emailVerification;
     private final SecureRandom random = new SecureRandom();
 
     public RegistrationService(PendingRegistrationRepository pending, UserService users,
-                               PasswordEncoder encoder, VerificationMailer mailer) {
+                               PasswordEncoder encoder, VerificationMailer mailer,
+                               @Value("${app.email-verification}") boolean emailVerification) {
         this.pending = pending;
         this.users = users;
         this.encoder = encoder;
         this.mailer = mailer;
+        this.emailVerification = emailVerification;
     }
 
-    /** Valida os dados, guarda o cadastro pendente e envia o código. */
+    /**
+     * Valida os dados, guarda o cadastro pendente e envia o código.
+     * Com a confirmação por e-mail desligada, cria a conta na hora.
+     * @return true se a conta ficou pendente aguardando o código
+     */
     @Transactional
-    public void start(RegisterForm form) {
+    public boolean start(RegisterForm form) {
         String name = form.getName().trim();
         String email = form.getEmail().trim().toLowerCase();
         users.checkAvailable(name, email);
+
+        if (!emailVerification) {
+            users.createVerified(name, email, encoder.encode(form.getPassword()));
+            return false;
+        }
 
         PendingRegistration p = pending.findByEmail(email).orElseGet(PendingRegistration::new);
         if (p.getId() != null) checkCooldown(p);
@@ -46,6 +59,7 @@ public class RegistrationService {
         p.setName(name);
         p.setPasswordHash(encoder.encode(form.getPassword()));
         sendNewCode(p);
+        return true;
     }
 
     @Transactional

@@ -7,6 +7,7 @@ import ForgotPassword from './pages/ForgotPassword'
 import Today from './pages/Today'
 import Profile from './pages/Profile'
 import { ThemeProvider } from './ThemeContext'
+import { EMAIL_FEATURES } from './features'
 
 function PrivateRoute({ children }) {
   const { user, loading } = useAuth()
@@ -35,7 +36,7 @@ function AnimatedRoutes() {
               <Routes location={location}>
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
-                <Route path="/forgot-password" element={<ForgotPassword />} />
+                {EMAIL_FEATURES && <Route path="/forgot-password" element={<ForgotPassword />} />}
                 <Route path="/home" element={<PrivateRoute><Today /></PrivateRoute>} />
                 <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
                 <Route path="*" element={<Navigate to="/home" replace />} />

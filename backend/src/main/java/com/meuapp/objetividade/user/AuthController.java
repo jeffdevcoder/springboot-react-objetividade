@@ -85,11 +85,15 @@ public class AuthController {
         return Map.of("token", token.getToken());
     }
 
-    /** 1ª etapa do cadastro: valida os dados e envia o código por e-mail. */
+    /**
+     * 1ª etapa do cadastro: valida os dados e envia o código por e-mail.
+     * Com app.email-verification=false a conta já é criada aqui (pending = false).
+     */
     @PostMapping("/register")
-    public ResponseEntity<Void> register(@Valid @RequestBody RegisterForm form) {
-        registration.start(form);
-        return ResponseEntity.accepted().build();
+    public ResponseEntity<Map<String, Boolean>> register(@Valid @RequestBody RegisterForm form) {
+        boolean pending = registration.start(form);
+        return ResponseEntity.status(pending ? HttpStatus.ACCEPTED : HttpStatus.CREATED)
+                .body(Map.of("pending", pending));
     }
 
     /** 2ª etapa: confere o código e cria a conta. */

@@ -3,7 +3,7 @@ package com.meuapp.objetividade.task;
 import java.time.LocalDate;
 import java.util.List;
 
-/** Resumo do que foi feito e do que ficou pendente num período (semana ou mês, até hoje). */
+/** Resumo do que foi feito e do que ficou pendente num período (semana, mês ou ano, até hoje). */
 public record TaskStatsView(
         String period,
         LocalDate from,

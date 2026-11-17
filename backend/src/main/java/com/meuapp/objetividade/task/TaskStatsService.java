@@ -36,10 +36,15 @@ public class TaskStatsService {
         LocalDate from = switch (period) {
             case "week" -> today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
             case "month" -> today.withDayOfMonth(1);
+            case "year" -> today.withDayOfYear(1);
             default -> throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Período inválido");
         };
         // fim do período: só para desenhar o gráfico completo; dias futuros não contam
-        LocalDate periodEnd = period.equals("week") ? from.plusDays(6) : today.withDayOfMonth(today.lengthOfMonth());
+        LocalDate periodEnd = switch (period) {
+            case "week" -> from.plusDays(6);
+            case "month" -> today.withDayOfMonth(today.lengthOfMonth());
+            default -> today.withDayOfYear(today.lengthOfYear());
+        };
 
         User user = users.findByEmail(email).orElseThrow();
         List<Task> all = tasks.findByUserAndActiveTrueOrderByIdAsc(user);

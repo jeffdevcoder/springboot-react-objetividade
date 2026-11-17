@@ -51,6 +51,15 @@ export default function Register() {
     }
 
 
+    async function enter() {
+        try {
+            await login(form.email.trim(), form.password)
+            navigate('/home')
+        } catch {
+            navigate('/login', { state: { notice: 'Conta criada! Entre com seu e-mail e senha.' } })
+        }
+    }
+
     async function handleSubmit(e) {
         e.preventDefault()
         setError('')
@@ -65,10 +74,16 @@ export default function Register() {
                 throw new Error('As senhas não coincidem.')
             }
 
-            await api('/auth/register', {
+            const res = await api('/auth/register', {
                 method: 'POST',
                 body: form
             })
+
+            // confirmação por e-mail desligada no backend: a conta já foi criada
+            if (res && res.pending === false) {
+                await enter()
+                return
+            }
 
             setCode('')
             setNotice('')
@@ -96,12 +111,7 @@ export default function Register() {
                 body: { email: form.email, code }
             })
 
-            try {
-                await login(form.email.trim(), form.password)
-                navigate('/home')
-            } catch {
-                navigate('/login', { state: { notice: 'Conta criada! Entre com seu e-mail e senha.' } })
-            }
+            await enter()
         } catch (err) {
             setError(err.message || 'Não foi possível confirmar o código.')
         } finally {
