@@ -3,3 +3,7 @@ data/
 backend/data/
 *.mv.db
 *.trace.db
+
+# Backups automáticos do banco (DatabaseBackup)
+backups/
+backend/backups/

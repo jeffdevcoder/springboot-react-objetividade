@@ -1,8 +1,12 @@
 import { useEffect } from 'react'
+import { usePopoverPosition } from '../../usePopoverPosition'
 
-const OPTIONS = Array.from({ length: 419 }, (_, i) => i + 2)
+export const MAX_INSTALLMENTS = 420
+const OPTIONS = Array.from({ length: MAX_INSTALLMENTS - 1 }, (_, i) => i + 2)
 
 export default function InstallmentPicker({ value, min = 2, allowNone = true, onSelect, onClose }) {
+    const [popRef, popStyle] = usePopoverPosition(allowNone)
+
     useEffect(() => {
         const onKey = e => {
             if (e.key === 'Escape') {
@@ -18,7 +22,13 @@ export default function InstallmentPicker({ value, min = 2, allowNone = true, on
         <>
             <div className="calendar-backdrop" onMouseDown={onClose} />
 
-            <div className="emoji-pop installment-pop is-up" role="dialog" aria-label="Escolher número de parcelas">
+            <div
+                ref={popRef}
+                className="emoji-pop installment-pop"
+                style={popStyle}
+                role="dialog"
+                aria-label="Escolher número de parcelas"
+            >
                 <p className="emoji-group-name">Parcelas</p>
 
                 {allowNone && (

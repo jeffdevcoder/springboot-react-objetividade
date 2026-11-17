@@ -1,42 +1,14 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
+import { usePopoverPosition } from '../usePopoverPosition'
 import '../styles/emoji.css'
 
 // Sem onSave: escolher um emoji já chama onSelect.
 // Com onSave: o emoji fica pendente até clicar em "Salvar".
-const GAP = 8
-const MARGIN = 12
-
 export default function EmojiPicker({ groups, value, onSelect, onSave, onClose }) {
     const [group, setGroup] = useState(() => Math.max(groups.findIndex(g => g.emojis.includes(value)), 0))
     const [pending, setPending] = useState(value ?? null)
     const confirm = Boolean(onSave)
-    const popRef = useRef(null)
-    const [pos, setPos] = useState(null)
-
-    // posição fixa relativa ao botão (o elemento pai), para não ser cortado por listas/modais com rolagem
-    useLayoutEffect(() => {
-        const pop = popRef.current
-        const anchor = pop?.parentElement
-        if (!pop || !anchor) return
-        const place = () => {
-            const a = anchor.getBoundingClientRect()
-            const w = pop.offsetWidth
-            const h = pop.offsetHeight
-            const below = window.innerHeight - a.bottom - GAP - MARGIN
-            const top = below >= h || a.top - GAP - MARGIN < h
-                ? Math.min(a.bottom + GAP, window.innerHeight - h - MARGIN)
-                : a.top - GAP - h
-            const left = Math.min(Math.max(a.left, MARGIN), window.innerWidth - w - MARGIN)
-            setPos({ top: Math.max(top, MARGIN), left })
-        }
-        place()
-        window.addEventListener('resize', place)
-        window.addEventListener('scroll', place, true)
-        return () => {
-            window.removeEventListener('resize', place)
-            window.removeEventListener('scroll', place, true)
-        }
-    }, [confirm])
+    const [popRef, popStyle] = usePopoverPosition(confirm)
 
     useEffect(() => {
         const onKey = e => {
@@ -70,7 +42,7 @@ export default function EmojiPicker({ groups, value, onSelect, onSave, onClose }
             <div
                 ref={popRef}
                 className="emoji-pop"
-                style={pos ? { position: 'fixed', top: pos.top, left: pos.left } : { visibility: 'hidden' }}
+                style={popStyle}
                 role="dialog"
                 aria-label="Escolher emoji"
                 onMouseDown={e => e.stopPropagation()}

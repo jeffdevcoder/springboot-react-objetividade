@@ -4,3 +4,5 @@
 frontend/dist
 backend/target
 backend/data
+backups
+backend/backups

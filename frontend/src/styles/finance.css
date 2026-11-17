@@ -411,11 +411,6 @@ html[data-theme="dark"] .task-urgent input[type="checkbox"]:checked {
     font-weight: 600;
 }
 
-.installment-pop.is-up {
-    top: auto;
-    bottom: calc(100% + 8px);
-}
-
 .installment-item:disabled { opacity: 0.3; cursor: not-allowed; }
 
 .fin-remaining.is-income { color: var(--fin-income-text); }

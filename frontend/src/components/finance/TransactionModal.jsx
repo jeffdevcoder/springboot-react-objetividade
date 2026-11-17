@@ -3,7 +3,7 @@ import { api } from '../../api'
 import { EMOJI_GROUPS, MAX_AMOUNT_CENTS, formatMoney, maskMoney, paletteFor, parseMoney } from '../../finance'
 import DateField from '../DateField'
 import EmojiPicker from '../EmojiPicker'
-import InstallmentPicker from './InstallmentPicker'
+import InstallmentPicker, { MAX_INSTALLMENTS } from './InstallmentPicker'
 
 const formatDay = iso => iso.split('-').reverse().join('/')
 const rowKey = t => (t.id !== null ? `t${t.id}` : `r${t.recurringId}`)
@@ -297,7 +297,7 @@ export default function TransactionModal({
     const pendingCount = expenses.filter(t => !t.paid).length
 
     const invalid = !amount.trim() || !date || (!description.trim() && !categoryId)
-    const installmentsN = Math.min(Math.max(parseInt(installments, 10) || 1, 1), 60)
+    const installmentsN = Math.min(Math.max(parseInt(installments, 10) || 1, 1), MAX_INSTALLMENTS)
     const isInstallment = editing && transaction.installmentTotal > 1
     const canInstall = !editing && type === 'EXPENSE'
 
