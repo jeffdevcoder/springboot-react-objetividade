@@ -14,6 +14,7 @@ import GoalsPanel from '../components/goals/GoalsPanel.jsx'
 import UserMenu from '../components/UserMenu'
 import EmojiPicker from '../components/EmojiPicker'
 import { TASK_EMOJI_GROUPS, TASK_EMOJI_PLACEHOLDER } from '../emojis'
+import { playCheck } from '../sound'
 
 const LABELS = {
     ONCE: 'Uma vez',
@@ -210,6 +211,7 @@ export default function Today() {
             setTasks(list => list.map(t => (t.id === task.id ? { ...t, done: value } : t)))
 
         mark(done)
+        if (done) playCheck()
         try {
             await api(`/tasks/${task.id}/complete?date=${selectedDate}`, {
                 method: done ? 'POST' : 'DELETE',
@@ -258,6 +260,7 @@ export default function Today() {
                 : t))
 
         mark(done)
+        if (done) playCheck()
         try {
             await api(`/tasks/${task.id}/subtasks/${sub.id}/complete?date=${selectedDate}`, {
                 method: done ? 'POST' : 'DELETE',

@@ -3,6 +3,7 @@ import { api } from '../../api'
 import { daysUntil } from '../../notes'
 import { deadlineLabel, formatDate, progress, sortGoals } from '../../goals'
 import GoalModal from './GoalModal'
+import { playCheck } from '../../sound'
 import '../../styles/notes.css'
 import '../../styles/goals.css'
 
@@ -27,6 +28,7 @@ export default function GoalsPanel() {
 
     async function toggle(goal) {
         const achieved = !goal.achievedOn
+        if (achieved) playCheck()
         // mostra na hora; o backend devolve a data oficial da conquista
         replace({ ...goal, achievedOn: achieved ? new Date().toLocaleDateString('sv') : null })
         try {
@@ -50,6 +52,7 @@ export default function GoalsPanel() {
             ? { ...g, steps: g.steps.map(st => (st.id === step.id ? { ...st, done } : st)) }
             : g))
         mark(!step.done)
+        if (!step.done) playCheck()
         try {
             await api(`/goals/${goal.id}/steps/${step.id}`, { method: 'PATCH', body: { done: !step.done } })
         } catch (err) {

@@ -4,6 +4,7 @@ import { EMOJI_GROUPS, MAX_AMOUNT_CENTS, formatMoney, maskMoney, paletteFor, par
 import DateField from '../DateField'
 import EmojiPicker from '../EmojiPicker'
 import InstallmentPicker, { MAX_INSTALLMENTS } from './InstallmentPicker'
+import { playCheck } from '../../sound'
 
 const formatDay = iso => iso.split('-').reverse().join('/')
 const rowKey = t => (t.id !== null ? `t${t.id}` : `r${t.recurringId}`)
@@ -119,6 +120,7 @@ export default function TransactionModal({
                 ? `/finance/recurring/${t.recurringId}/paid?month=${month}`
                 : `/finance/transactions/${t.id}/paid`
             await api(url, { method: 'PUT', body: { paid } })
+            if (paid) playCheck()
             onPaid?.(t, paid)
             setPayPick(null)
         } catch (err) {
@@ -263,6 +265,7 @@ export default function TransactionModal({
             if (isInstallment) body.installments = installmentsN
 
             let saved
+            const wasPaid = Boolean(transaction?.paid)
             if (!editing) {
                 saved = await api('/finance/transactions', { method: 'POST', body })
             } else if (transaction.recurringId) {
@@ -283,6 +286,7 @@ export default function TransactionModal({
                     : await api(`/finance/transactions/${saved.id}/paid`, { method: 'PUT', body: { paid } })
             }
 
+            if ((!editing && saved.type === 'INCOME') || (saved.type === 'EXPENSE' && saved.paid && !wasPaid)) playCheck()
             onSaved(saved)
             onClose()
         } catch (err) {

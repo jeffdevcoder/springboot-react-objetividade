@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { api } from '../../api'
 import { MAX_STEPS, deadlineLabel, progress } from '../../goals'
 import DateField from '../DateField'
+import { playCheck } from '../../sound'
 
 export default function GoalModal({ open, goal, onClose, onSaved, onDeleted }) {
     const editing = Boolean(goal)
@@ -217,7 +218,10 @@ export default function GoalModal({ open, goal, onClose, onSaved, onDeleted }) {
                                             className="task-check"
                                             type="checkbox"
                                             checked={st.done}
-                                            onChange={() => updateStep(i, { done: !st.done })}
+                                            onChange={() => {
+                                            if (!st.done) playCheck()
+                                            updateStep(i, { done: !st.done })
+                                        }}
                                             aria-label={`Marcar "${st.title}" como feito`}
                                         />
 

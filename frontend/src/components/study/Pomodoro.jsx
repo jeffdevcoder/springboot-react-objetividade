@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { api } from '../../api'
+import { playCheck } from '../../sound'
 
 const KEY = 'pomodoro'
 const MODES = ['focus', 'break', 'custom']
@@ -63,7 +64,6 @@ export default function Pomodoro({ subjects, selectId, onSaved, onManage }) {
         if (!t.running) setT(x => ({ ...x, subjectId: selectId }))
     }
     const finishing = useRef(false)
-    const audio = useRef(null)
 
     const subjectId = subjects.some(s => s.id === t.subjectId) ? t.subjectId : (subjects[0]?.id ?? null)
     const subject = subjects.find(s => s.id === subjectId)
@@ -92,33 +92,6 @@ export default function Pomodoro({ subjects, selectId, onSaved, onManage }) {
         document.title = `${text} · ${LABELS[t.mode]}`
         return () => { document.title = old }
     }, [t.running, t.mode, text])
-
-    function unlockAudio() {
-        try {
-            const Ctx = window.AudioContext || window.webkitAudioContext
-            if (!audio.current) audio.current = new Ctx()
-            if (audio.current.state === 'suspended') audio.current.resume()
-        } catch { }
-    }
-
-    function chime() {
-        const ctx = audio.current
-        if (!ctx) return
-        const t0 = ctx.currentTime
-        ;[880, 1318.5].forEach((freq, i) => {
-            const osc = ctx.createOscillator()
-            const gain = ctx.createGain()
-            const s = t0 + i * 0.18
-            osc.type = 'sine'
-            osc.frequency.value = freq
-            gain.gain.setValueAtTime(0.0001, s)
-            gain.gain.exponentialRampToValueAtTime(0.12, s + 0.02)
-            gain.gain.exponentialRampToValueAtTime(0.0001, s + 1.2)
-            osc.connect(gain).connect(ctx.destination)
-            osc.start(s)
-            osc.stop(s + 1.3)
-        })
-    }
 
     function elapsedNow() {
         const rem = t.running ? Math.max(t.endAt - Date.now(), 0) : t.remainingMs
@@ -164,7 +137,7 @@ export default function Pomodoro({ subjects, selectId, onSaved, onManage }) {
     useEffect(() => {
         if (!done || finishing.current) return
         finishing.current = true
-        chime()
+        playCheck()
         finish().finally(() => { finishing.current = false })
     }, [done])
 
@@ -173,7 +146,7 @@ export default function Pomodoro({ subjects, selectId, onSaved, onManage }) {
     }
 
     function start() {
-        unlockAudio()
+        playCheck()
         const n = Date.now()
         setNow(n)
         setT(s => ({
