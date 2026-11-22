@@ -321,6 +321,8 @@
 
     .panel-title { order: 1; }
     .task-add { order: 2; margin-left: auto; }
+    .panel-header > .tag-filter { display: block; order: 2; margin-left: auto; }
+    .tag-filter + .task-add { margin-left: 0; }
     .panel-description { order: 3; flex-basis: 100%; margin: 0; }
 
     .task-add-icon {
@@ -1131,3 +1133,42 @@ img.user-avatar { object-fit: cover; background: none; }
     .avatar-arrow { display: none; }
     .avatar-carousel { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* filtro de tags em "Minhas tarefas" */
+.tag-filter { position: relative; margin-left: auto; }
+.tag-filter-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    max-width: 170px;
+    padding: 0.45rem 0.8rem;
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    background: transparent;
+    color: var(--color-muted);
+    font: inherit;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+.tag-filter-btn:hover { color: var(--color-text); background: color-mix(in srgb, currentColor 6%, transparent); }
+.tag-filter-btn.is-active { color: var(--color-text); }
+.tag-filter-btn .tag-dot { width: 10px; height: 10px; }
+.tag-filter-label,
+.tag-filter-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tag-filter-pop { max-height: 320px; overflow-y: auto; }
+.tag-filter-pop .tag-dot { width: 10px; height: 10px; }
+.user-pop-item.is-selected { font-weight: 600; background: color-mix(in srgb, currentColor 6%, transparent); }
+.tag-filter-empty { margin: 4px 12px 8px; color: var(--color-muted); font-size: 13px; }
+
+.link-btn {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--color-text);
+    font: inherit;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    cursor: pointer;
+}
+.filter-emoji { flex-shrink: 0; width: 18px; font-size: 15px; line-height: 1; text-align: center; }

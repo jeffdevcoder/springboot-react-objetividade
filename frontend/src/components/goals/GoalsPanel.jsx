@@ -3,7 +3,10 @@ import { api } from '../../api'
 import { daysUntil } from '../../notes'
 import { deadlineLabel, formatDate, progress, sortGoals } from '../../goals'
 import GoalModal from './GoalModal'
+import EmojiPicker from '../EmojiPicker'
+import { GOAL_EMOJI_GROUPS, GOAL_EMOJI_PLACEHOLDER } from '../../emojis'
 import { playCheck } from '../../sound'
+import { launchFireworks } from '../../fireworks'
 import '../../styles/notes.css'
 import '../../styles/goals.css'
 
@@ -14,6 +17,8 @@ export default function GoalsPanel() {
     const [modal, setModal] = useState({ open: false, goal: null })
     const [openSteps, setOpenSteps] = useState(() => new Set())
     const closeModal = useCallback(() => setModal(m => ({ ...m, open: false })), [])
+    const [emojiFor, setEmojiFor] = useState(null)
+    const closeEmoji = useCallback(() => setEmojiFor(null), [])
 
     useEffect(() => {
         let ignore = false
@@ -28,13 +33,28 @@ export default function GoalsPanel() {
 
     async function toggle(goal) {
         const achieved = !goal.achievedOn
-        if (achieved) playCheck()
+        if (achieved) {
+            playCheck()
+            launchFireworks()
+        }
         // mostra na hora; o backend devolve a data oficial da conquista
         replace({ ...goal, achievedOn: achieved ? new Date().toLocaleDateString('sv') : null })
         try {
             replace(await api(`/goals/${goal.id}/achieved`, { method: 'PATCH', body: { achieved } }))
         } catch (err) {
             replace(goal)
+            setError(err.message)
+        }
+    }
+
+    async function saveEmoji(goal, emoji) {
+        const set = value => setGoals(list => list.map(g => (g.id === goal.id ? { ...g, emoji: value } : g)))
+        set(emoji)
+        setEmojiFor(null)
+        try {
+            await api(`/goals/${goal.id}/emoji`, { method: 'PATCH', body: { emoji } })
+        } catch (err) {
+            set(goal.emoji)
             setError(err.message)
         }
     }
@@ -92,7 +112,7 @@ export default function GoalsPanel() {
                     {goals.map(goal => {
                         const achieved = Boolean(goal.achievedOn)
                         const days = daysUntil(goal.deadline)
-                        const state = achieved ? 'is-done' : days < 0 ? 'is-late' : days <= 7 ? 'is-soon' : ''
+                        const state = achieved ? 'is-done' : days < 0 ? 'is-late' : ''
                         return (
                             <li key={goal.id} className={`task-item note-item goal-item ${state}`}>
                                 <input
@@ -104,6 +124,31 @@ export default function GoalsPanel() {
                                         ? `Desmarcar "${goal.title}" como conquistada`
                                         : `Marcar "${goal.title}" como conquistada`}
                                 />
+
+                                <div className="task-emoji-anchor">
+                                    <button
+                                        type="button"
+                                        className="task-emoji"
+                                        aria-label={goal.emoji ? 'Trocar emoji' : 'Escolher emoji'}
+                                        title={goal.emoji ? 'Trocar emoji' : 'Escolher emoji'}
+                                        aria-haspopup="dialog"
+                                        aria-expanded={emojiFor === goal.id}
+                                        onClick={() => setEmojiFor(id => (id === goal.id ? null : goal.id))}
+                                    >
+                                        <span className={goal.emoji ? '' : 'emoji-empty'}>
+                                            {goal.emoji || GOAL_EMOJI_PLACEHOLDER}
+                                        </span>
+                                    </button>
+
+                                    {emojiFor === goal.id && (
+                                        <EmojiPicker
+                                            groups={GOAL_EMOJI_GROUPS}
+                                            value={goal.emoji}
+                                            onSave={e => saveEmoji(goal, e)}
+                                            onClose={closeEmoji}
+                                        />
+                                    )}
+                                </div>
 
                                 <button
                                     type="button"

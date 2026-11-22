@@ -79,3 +79,19 @@
         animation: page-fade 0.2s ease both;
     }
 }
+
+/* input minimalista: mesma cor dos inputs normais, sem borda — só um contorno bem suave */
+html .form-input.input-soft {
+    min-height: 40px;
+    border-color: transparent;
+    border-radius: 10px;
+    box-shadow: 0 0 0 1px color-mix(in srgb, currentColor 6%, transparent);
+}
+html .form-input.input-soft:hover {
+    border-color: transparent;
+    box-shadow: 0 0 0 1px color-mix(in srgb, currentColor 10%, transparent);
+}
+html .form-input.input-soft:focus {
+    border-color: transparent;
+    box-shadow: 0 0 0 1px color-mix(in srgb, currentColor 16%, transparent);
+}

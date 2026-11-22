@@ -250,7 +250,7 @@ export default function TaskModal({ open, task, defaultDate, canCheck = true, on
                         <span className="form-label">Subtarefas ({subtasks.length}/10)</span>
                         {subtasks.length < 10 && (
                             <input
-                                className="form-input"
+                                className="form-input input-soft"
                                 placeholder="Adicionar subtarefa"
                                 value={newSub}
                                 maxLength={100}

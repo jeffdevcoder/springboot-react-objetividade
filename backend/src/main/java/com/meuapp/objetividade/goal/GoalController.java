@@ -44,6 +44,13 @@ public class GoalController {
         return service.setStepDone(principal.getName(), id, stepId, body.done());
     }
 
+    @PatchMapping("/{id}/emoji")
+    public ResponseEntity<Void> setEmoji(@PathVariable Long id, @Valid @RequestBody GoalEmojiRequest body,
+                                         Principal principal) {
+        service.setEmoji(principal.getName(), id, body.emoji());
+        return ResponseEntity.noContent().build();
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id, Principal principal) {
         service.delete(principal.getName(), id);

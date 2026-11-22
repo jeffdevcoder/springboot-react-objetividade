@@ -17,35 +17,6 @@
     font-variant-numeric: tabular-nums;
 }
 
-.study-custom {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    color: var(--color-muted);
-    font-size: 13px;
-}
-.study-custom .form-input { width: 84px; text-align: center; }
-.study-custom .form-input:disabled { opacity: 0.4; }
-
-.study-desc { width: 100%; max-width: 420px; text-align: center; }
-
-.study-desc-btn {
-    max-width: 420px;
-    padding: 4px 10px;
-    border: 0;
-    border-radius: 6px;
-    background: none;
-    color: var(--color-muted);
-    font: inherit;
-    font-size: 13px;
-    cursor: pointer;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-.study-desc-btn:hover { color: var(--color-text); background: color-mix(in srgb, currentColor 8%, transparent); }
-.study-desc-btn.has-text { color: var(--color-text); }
-
 .study-sessions {
     list-style: none;
     margin: 16px 0 0;
@@ -97,7 +68,7 @@
 .study-controls .task-btn { padding: 0.6rem 1.5rem; border-color: var(--color-border); }
 .study-controls .task-btn.is-primary { border-color: transparent; }
 
-.study-mins { display: flex; gap: 10px; }
+.study-mins { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
 .study-mins label {
     display: flex;
     flex-direction: column;
@@ -107,6 +78,8 @@
 }
 .study-mins .form-input { width: 84px; text-align: center; }
 .study-mins .form-input:disabled { opacity: 0.4; }
+.study-mins .study-desc-field { flex: 1 1 200px; max-width: 320px; }
+html .study-mins .study-desc-field .form-input { width: 100%; min-height: 48px; text-align: left; }
 
 .study-subjects { justify-content: center; }
 .study-subjects .cat-chip:disabled { opacity: 0.45; cursor: not-allowed; }

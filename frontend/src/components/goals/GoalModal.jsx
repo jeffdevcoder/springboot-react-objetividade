@@ -2,12 +2,16 @@ import { useEffect, useRef, useState } from 'react'
 import { api } from '../../api'
 import { MAX_STEPS, deadlineLabel, progress } from '../../goals'
 import DateField from '../DateField'
+import EmojiPicker from '../EmojiPicker'
+import { GOAL_EMOJI_GROUPS, GOAL_EMOJI_PLACEHOLDER } from '../../emojis'
 import { playCheck } from '../../sound'
 
 export default function GoalModal({ open, goal, onClose, onSaved, onDeleted }) {
     const editing = Boolean(goal)
     const [title, setTitle] = useState('')
     const [description, setDescription] = useState('')
+    const [emoji, setEmoji] = useState('')
+    const [emojiOpen, setEmojiOpen] = useState(false)
     const [deadline, setDeadline] = useState('')
     const [steps, setSteps] = useState([])
     const [newStep, setNewStep] = useState('')
@@ -24,6 +28,8 @@ export default function GoalModal({ open, goal, onClose, onSaved, onDeleted }) {
         if (open) {
             setTitle(goal?.title ?? '')
             setDescription(goal?.description ?? '')
+            setEmoji(goal?.emoji ?? '')
+            setEmojiOpen(false)
             setDeadline(goal?.deadline ?? '')
             setSteps(goal?.steps?.map(st => ({ key: `s${st.id}`, id: st.id, title: st.title, done: st.done })) ?? [])
             setNewStep('')
@@ -99,6 +105,7 @@ export default function GoalModal({ open, goal, onClose, onSaved, onDeleted }) {
             const body = {
                 title,
                 description,
+                emoji: emoji || null,
                 deadline: deadline || null,
                 steps: steps
                     .filter(st => st.title.trim())
@@ -136,16 +143,44 @@ export default function GoalModal({ open, goal, onClose, onSaved, onDeleted }) {
                 <h2>{editing ? 'Meta' : 'Nova meta'}</h2>
 
                 <div className="task-modal-body">
-                    <input
-                        className="form-input"
-                        ref={titleRef}
-                        placeholder="Tópico (ex.: Ler 12 livros)"
-                        value={title}
-                        maxLength={100}
-                        onChange={e => setTitle(e.target.value)}
-                        required
-                        autoComplete="off"
-                    />
+                    <div className="task-title-row">
+                        <div className="task-emoji-anchor">
+                            <button
+                                type="button"
+                                className="form-input task-emoji-field"
+                                onClick={() => setEmojiOpen(o => !o)}
+                                aria-label={emoji ? 'Trocar emoji' : 'Escolher emoji'}
+                                title={emoji ? 'Trocar emoji' : 'Escolher emoji'}
+                                aria-haspopup="dialog"
+                                aria-expanded={emojiOpen}
+                            >
+                                <span className={emoji ? '' : 'emoji-empty'}>{emoji || GOAL_EMOJI_PLACEHOLDER}</span>
+                            </button>
+
+                            {emojiOpen && (
+                                <EmojiPicker
+                                    groups={GOAL_EMOJI_GROUPS}
+                                    value={emoji}
+                                    onSelect={e => {
+                                        setEmoji(e)
+                                        setEmojiOpen(false)
+                                    }}
+                                    onClose={() => setEmojiOpen(false)}
+                                />
+                            )}
+                        </div>
+
+                        <input
+                            className="form-input"
+                            ref={titleRef}
+                            placeholder="Tópico (ex.: Ler 12 livros)"
+                            value={title}
+                            maxLength={100}
+                            onChange={e => setTitle(e.target.value)}
+                            required
+                            autoComplete="off"
+                        />
+                    </div>
 
                     <textarea
                         className="form-input"
@@ -156,16 +191,6 @@ export default function GoalModal({ open, goal, onClose, onSaved, onDeleted }) {
                         onChange={e => setDescription(e.target.value)}
                     />
 
-                    <div className="note-date">
-                        <span className="form-label">Conquistar até</span>
-                        <div className="note-date-row">
-                            <DateField value={deadline} onChange={setDeadline} placeholder="Escolha a data" align="left" />
-                        </div>
-                        {deadline && !goal?.achievedOn && (
-                            <small className="note-date-hint">{deadlineLabel(deadline)}</small>
-                        )}
-                    </div>
-
                     <div className="task-subs-edit">
                         <span className="form-label">
                             Subtópicos ({steps.length}/{MAX_STEPS})
@@ -173,7 +198,7 @@ export default function GoalModal({ open, goal, onClose, onSaved, onDeleted }) {
                         </span>
                         {steps.length < MAX_STEPS && (
                             <input
-                                className="form-input"
+                                className="form-input input-soft"
                                 placeholder="Adicionar subtópico"
                                 value={newStep}
                                 maxLength={100}
@@ -251,6 +276,16 @@ export default function GoalModal({ open, goal, onClose, onSaved, onDeleted }) {
                                     </div>
                                 ))}
                             </div>
+                        )}
+                    </div>
+
+                    <div className="note-date">
+                        <span className="form-label">Conquistar até</span>
+                        <div className="note-date-row">
+                            <DateField value={deadline} onChange={setDeadline} placeholder="Escolha a data" align="left" />
+                        </div>
+                        {deadline && !goal?.achievedOn && (
+                            <small className="note-date-hint">{deadlineLabel(deadline)}</small>
                         )}
                     </div>
 

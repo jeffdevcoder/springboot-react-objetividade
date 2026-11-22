@@ -3,9 +3,8 @@ import { api } from '../../api'
 import { playCheck } from '../../sound'
 
 const KEY = 'pomodoro'
-const MODES = ['focus', 'break', 'custom']
-const LABELS = { focus: 'Foco', break: 'Pausa', custom: 'Pausa personalizada' }
-const BREAK_MIN = 5
+const MODES = ['focus', 'break']
+const LABELS = { focus: 'Foco', break: 'Pausa' }
 
 const SIZE = 220
 const STROKE = 14
@@ -22,7 +21,7 @@ const initial = () => ({
     startDate: null,
     subjectId: null,
     description: '',
-    mins: { focus: 25, break: BREAK_MIN, custom: 10 },
+    mins: { focus: 25, break: 5 },
 })
 
 function load() {
@@ -32,10 +31,9 @@ function load() {
         const base = initial()
         const mins = {
             focus: saved.mins.focus ?? base.mins.focus,
-            break: BREAK_MIN,
-            custom: saved.mins.custom ?? base.mins.custom,
+            break: saved.mins.break ?? base.mins.break,
         }
-        // estado de versões antigas (pausa curta/longa) volta para o foco
+        // estado de versões antigas (pausa curta/longa/personalizada) volta para o foco
         if (!MODES.includes(saved.mode)) {
             return { ...base, subjectId: saved.subjectId ?? null, mins, remainingMs: mins.focus * 60000 }
         }
@@ -55,7 +53,6 @@ export default function Pomodoro({ subjects, selectId, onSaved, onManage }) {
     const [now, setNow] = useState(() => Date.now())
     const [settings, setSettings] = useState(false)
     const [error, setError] = useState('')
-    const [editingDesc, setEditingDesc] = useState(false)
     const [appliedSelect, setAppliedSelect] = useState(selectId)
 
     // matéria recém-criada: seleciona assim que ela chega na lista (se o timer não estiver rodando)
@@ -123,7 +120,6 @@ export default function Pomodoro({ subjects, selectId, onSaved, onManage }) {
         const seconds = elapsedNow()
         const saving = t.mode === 'focus' && seconds >= 1
         if (saving && !(await save(seconds))) return
-        setEditingDesc(false)
         setT(s => ({
             ...s,
             mode,
@@ -210,27 +206,13 @@ export default function Pomodoro({ subjects, selectId, onSaved, onManage }) {
                 </svg>
 
                 <div className="donut-center">
-                    <span className="donut-label">{t.mode === 'custom' ? 'Pausa' : LABELS[t.mode]}</span>
+                    <span className="donut-label">{LABELS[t.mode]}</span>
                     <strong className="study-time">{text}</strong>
                     {t.mode === 'focus' && subject && (
                         <span className="donut-hint">{subject.emoji} {subject.name}</span>
                     )}
                 </div>
             </div>
-
-            {t.mode === 'custom' && (
-                <label className="study-custom">
-                    <span>Duração (min)</span>
-                    <input
-                        className="form-input"
-                        inputMode="numeric"
-                        autoComplete="off"
-                        value={t.mins.custom}
-                        disabled={t.running || elapsed > 0}
-                        onChange={e => setMin('custom', e.target.value.replace(/\D/g, ''))}
-                    />
-                </label>
-            )}
 
             <div className="study-controls">
                 <button
@@ -251,8 +233,8 @@ export default function Pomodoro({ subjects, selectId, onSaved, onManage }) {
                 <button
                     type="button"
                     className="day-btn"
-                    aria-label="Ajustar tempos"
-                    title="Ajustar tempos"
+                    aria-label="Ajustes"
+                    title="Ajustes"
                     aria-expanded={settings}
                     onClick={() => setSettings(o => !o)}
                 >
@@ -280,31 +262,35 @@ export default function Pomodoro({ subjects, selectId, onSaved, onManage }) {
                             onChange={e => setMin('focus', e.target.value.replace(/\D/g, ''))}
                         />
                     </label>
+
+                    <label>
+                        <span>Pausa (min)</span>
+                        <input
+                            className="form-input"
+                            inputMode="numeric"
+                            autoComplete="off"
+                            value={t.mins.break}
+                            disabled={t.mode === 'break' && t.running}
+                            onChange={e => setMin('break', e.target.value.replace(/\D/g, ''))}
+                        />
+                    </label>
+
+                    {t.mode === 'focus' && (
+                        <label className="study-desc-field">
+                            <span>Descrição</span>
+                            <input
+                                className="form-input input-soft"
+                                placeholder="Ex.: capítulo 3"
+                                maxLength={120}
+                                autoComplete="off"
+                                value={t.description}
+                                onChange={e => setT(x => ({ ...x, description: e.target.value }))}
+                                onKeyDown={e => e.key === 'Enter' && setSettings(false)}
+                            />
+                        </label>
+                    )}
                 </div>
             )}
-
-            {t.mode === 'focus' && (editingDesc ? (
-                <input
-                    className="form-input study-desc"
-                    placeholder="Descrição"
-                    maxLength={120}
-                    autoComplete="off"
-                    autoFocus
-                    value={t.description}
-                    onChange={e => setT(x => ({ ...x, description: e.target.value }))}
-                    onBlur={() => setEditingDesc(false)}
-                    onKeyDown={e => (e.key === 'Enter' || e.key === 'Escape') && setEditingDesc(false)}
-                />
-            ) : (
-                <button
-                    type="button"
-                    className={`study-desc-btn ${t.description.trim() ? 'has-text' : ''}`}
-                    onClick={() => setEditingDesc(true)}
-                    title={t.description.trim() ? 'Editar descrição' : undefined}
-                >
-                    {t.description.trim() || '+ Adicionar descrição'}
-                </button>
-            ))}
 
             <div className="cat-chips study-subjects">
                 {subjects.map(s => (

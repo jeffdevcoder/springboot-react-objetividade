@@ -44,7 +44,7 @@ html[data-theme='dark'] .dashboard {
     display: flex;
     align-items: center;
     gap: 32px;
-    margin: 22px 0 8px;
+    margin: 32px 0 8px;
 }
 .donut-wrap { position: relative; flex-shrink: 0; width: 200px; height: 200px; }
 .donut { display: block; width: 100%; height: 100%; }
@@ -107,8 +107,16 @@ html[data-theme='dark'] .dashboard {
 }
 .fin-dot { flex-shrink: 0; width: 10px; height: 10px; border-radius: 50%; }
 
+.fin-list-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 26px 0 12px;
+}
+.fin-list-head .tag-filter-btn { padding: 0.3rem 0.7rem; font-size: 0.82rem; }
 .fin-list-title {
-    margin: 26px 0 4px;
+    margin: 0;
     color: var(--color-muted);
     font-size: 12px;
     font-weight: 700;
@@ -508,3 +516,25 @@ html[data-theme="dark"] .task-urgent input[type="checkbox"]:checked {
     color: var(--fin-expense-text);
 }
 .fin-pay-confirm:disabled { opacity: 0.6; cursor: default; }
+
+/* filtro da lista: "Gastos" puxa pro vermelho, "Contas pagas" pro verde */
+.tag-filter-btn.tone-expense,
+.user-pop-item.tone-expense { --tone: var(--fin-expense-text); }
+.tag-filter-btn.tone-paid,
+.user-pop-item.tone-paid { --tone: var(--fin-income-text); }
+
+.tag-filter-btn.tone-expense,
+.tag-filter-btn.tone-paid {
+    border-color: color-mix(in srgb, var(--tone) 35%, transparent);
+    background: color-mix(in srgb, var(--tone) 10%, transparent);
+    color: var(--tone);
+}
+.tag-filter-btn.tone-expense:hover,
+.tag-filter-btn.tone-paid:hover { background: color-mix(in srgb, var(--tone) 16%, transparent); }
+
+.user-pop-item.tone-expense,
+.user-pop-item.tone-paid { color: var(--tone); }
+.user-pop-item.tone-expense:hover,
+.user-pop-item.tone-paid:hover,
+.user-pop-item.tone-expense.is-selected,
+.user-pop-item.tone-paid.is-selected { background: color-mix(in srgb, var(--tone) 10%, transparent); }

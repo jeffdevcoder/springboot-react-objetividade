@@ -73,13 +73,19 @@ public class GoalService {
     }
 
     @Transactional
+    public void setEmoji(String email, Long id, String emoji) {
+        find(email, id).setEmoji(blankToNull(emoji));
+    }
+
+    @Transactional
     public void delete(String email, Long id) {
         goals.delete(find(email, id));
     }
 
     private void apply(Goal g, GoalRequest req) {
         g.setTitle(req.title().trim());
-        g.setDescription(req.description() == null || req.description().isBlank() ? null : req.description().trim());
+        g.setDescription(blankToNull(req.description()));
+        g.setEmoji(blankToNull(req.emoji()));
         g.setDeadline(req.deadline());
         syncSteps(g, req.steps() == null ? List.of() : req.steps());
     }
@@ -102,6 +108,10 @@ public class GoalService {
 
         g.getSteps().clear();
         g.getSteps().addAll(next);
+    }
+
+    private static String blankToNull(String s) {
+        return s == null || s.isBlank() ? null : s.trim();
     }
 
     private Goal find(String email, Long id) {

@@ -25,6 +25,9 @@ public class Goal {
     @Column(length = 2000)
     private String description;
 
+    @Column(length = 16)
+    private String emoji;
+
     // data até quando a meta deve ser conquistada
     @Column(nullable = false)
     private LocalDate deadline;
@@ -47,6 +50,8 @@ public class Goal {
     public void setTitle(String title) { this.title = title; }
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
+    public String getEmoji() { return emoji; }
+    public void setEmoji(String emoji) { this.emoji = emoji; }
     public LocalDate getDeadline() { return deadline; }
     public void setDeadline(LocalDate deadline) { this.deadline = deadline; }
     public LocalDate getAchievedOn() { return achievedOn; }

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { api } from '../../api'
 import {
     EXPENSE_COLOR,
@@ -15,6 +15,7 @@ import DonutChart from './DonutChart'
 import TransactionModal from './TransactionModal'
 import '../../styles/finance.css'
 import MonthPicker from './MonthPicker'
+import FilterMenu from '../FilterMenu'
 
 const formatDay = iso => iso.split('-').reverse().join('/')
 
@@ -34,6 +35,13 @@ const rowKey = t => (t.id !== null ? `t${t.id}` : `r${t.recurringId}`)
 
 const segKey = t => `${t.type}-${t.category ? t.category.id : 'none'}`
 
+// filtros fixos da lista; as categorias entram depois como `c<id>`
+const BASE_FILTERS = [
+    { key: 'all', label: 'Lançamentos', test: () => true },
+    { key: 'expense', label: 'Gastos', tone: 'expense', test: t => t.type === 'EXPENSE' },
+    { key: 'paid', label: 'Contas pagas', tone: 'paid', test: t => t.type === 'EXPENSE' && t.paid },
+]
+
 function rowVisual(t) {
     if (t.category) return { icon: t.category.emoji, color: t.category.color }
     return t.type === 'INCOME'
@@ -52,6 +60,34 @@ export default function FinancePanel() {
     const currentMonth = toMonthKey(new Date())
     const isCurrent = month === currentMonth
     const [selectedKey, setSelectedKey] = useState(null)
+    const [categories, setCategories] = useState(null)
+    const [filter, setFilter] = useState(() => {
+        try { return localStorage.getItem('financeFilter') || 'all' } catch { return 'all' }
+    })
+
+    function chooseFilter(key) {
+        setFilter(key)
+        try {
+            if (key === 'all') localStorage.removeItem('financeFilter')
+            else localStorage.setItem('financeFilter', key)
+        } catch { /* sem armazenamento */ }
+    }
+
+    const loadCategories = useCallback(() => {
+        api('/finance/categories')
+            .then(list => {
+                setCategories(list)
+                // categoria escolhida foi excluída: volta para "Lançamentos"
+                setFilter(f => {
+                    if (!f.startsWith('c') || list.some(c => `c${c.id}` === f)) return f
+                    try { localStorage.removeItem('financeFilter') } catch { /* sem armazenamento */ }
+                    return 'all'
+                })
+            })
+            .catch(() => {})
+    }, [])
+
+    useEffect(loadCategories, [loadCategories])
 
     useEffect(() => {
         let ignore = false
@@ -115,6 +151,19 @@ export default function FinancePanel() {
     }
 
     const expenses = items.filter(t => t.type === 'EXPENSE')
+
+    const filterOptions = [
+        ...BASE_FILTERS,
+        ...(categories ?? []).map((c, i) => ({
+            key: `c${c.id}`,
+            label: c.name,
+            emoji: c.emoji,
+            divider: i === 0,
+            test: t => t.category?.id === c.id,
+        })),
+    ]
+    const activeFilter = filterOptions.find(o => o.key === filter) ?? BASE_FILTERS[0]
+    const shown = items.filter(activeFilter.test)
 
     const totals = summarize(items)
     const segments = buildSegments(items)
@@ -257,11 +306,20 @@ export default function FinancePanel() {
                 </div>
             </div>
 
-            <h3 className="fin-list-title">Lançamentos</h3>
+            <div className="fin-list-head">
+                <h3 className="fin-list-title">Lançamentos</h3>
+                <FilterMenu
+                    options={filterOptions}
+                    value={activeFilter.key}
+                    onChange={chooseFilter}
+                    placeholder="Filtrar"
+                    onOpen={loadCategories}
+                />
+            </div>
 
-            {items.length > 0 ? (
+            {shown.length > 0 ? (
                 <ul className="fin-list">
-                    {items.map(t => (
+                    {shown.map(t => (
                         <li key={rowKey(t)} className="fin-row">
                             <button type="button" className="fin-open" onClick={() => openEdit(t)}>
         <span
@@ -322,7 +380,16 @@ export default function FinancePanel() {
         </li> ))}
                 </ul>
             ) : (
-                <p className="fin-empty">Nenhum lançamento neste mês.</p>
+                <p className="fin-empty">
+                    {items.length === 0 ? 'Nenhum lançamento neste mês.' : (
+                        <>
+                            Nada em “{activeFilter.label}” neste mês.{' '}
+                            <button type="button" className="link-btn" onClick={() => chooseFilter('all')}>
+                                Mostrar todos
+                            </button>
+                        </>
+                    )}
+                </p>
             )}
 
             <TransactionModal
@@ -333,7 +400,10 @@ export default function FinancePanel() {
                 onPaid={markPaid}
                 onClose={() => setModalOpen(false)}
                 onSaved={handleSaved}
-                onCategoriesChanged={refresh}
+                onCategoriesChanged={() => {
+                    refresh()
+                    loadCategories()
+                }}
             />
 
             <div className={`task-overlay ${openSeg ? 'is-open' : ''}`} onMouseDown={() => setSelectedKey(null)}>

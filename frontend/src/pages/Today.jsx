@@ -6,6 +6,7 @@ import '../styles/auth.css'
 import '../styles/tasks.css'
 import Calendar from '../components/Calendar'
 import TagModal from '../components/TagModal'
+import TagFilter from '../components/TagFilter'
 import { tagHex } from '../tagColors'
 import FinancePanel from '../components/finance/FinancePanel.jsx'
 import StudyPanel from '../components/study/StudyPanel.jsx'
@@ -108,6 +109,19 @@ export default function Today() {
     const closeEmoji = useCallback(() => setEmojiFor(null), [])
     const closeTagModal = useCallback(() => setTagModal(m => ({ ...m, open: false })), [])
     const [dragId, setDragId] = useState(null)
+    const [tagFilter, setTagFilter] = useState(() => {
+        try { return JSON.parse(localStorage.getItem('taskTagFilter')) } catch { return null }
+    })
+    const visible = tagFilter ? tasks.filter(t => t.tag?.id === tagFilter.id) : tasks
+
+    function chooseTagFilter(tag) {
+        prevTops.current.clear()
+        setTagFilter(tag)
+        try {
+            if (tag) localStorage.setItem('taskTagFilter', JSON.stringify({ id: tag.id, name: tag.name, color: tag.color }))
+            else localStorage.removeItem('taskTagFilter')
+        } catch { /* sem armazenamento */ }
+    }
     const [openSubs, setOpenSubs] = useState(() => new Set())
     const listRef = useRef(null)
     const prevTops = useRef(new Map())
@@ -144,7 +158,7 @@ export default function Today() {
             }
             prevTops.current.set(id, top)
         })
-    }, [tasks])
+    }, [tasks, tagFilter])
 
     const closeModal = useCallback(() => setModal(m => ({ ...m, open: false })), [])
 
@@ -299,11 +313,11 @@ export default function Today() {
 
         const y = clientY - list.getBoundingClientRect().top + list.scrollTop
         const els = list.querySelectorAll('[data-task-id]')
-        const from = tasks.findIndex(t => t.id === dragId)
+        const from = visible.findIndex(t => t.id === dragId)
         if (from < 0) return
 
         let to = from
-        if (from < tasks.length - 1) {
+        if (from < visible.length - 1) {
             const next = els[from + 1]
             if (y > next.offsetTop + next.offsetHeight / 2) to = from + 1
         }
@@ -315,10 +329,14 @@ export default function Today() {
 
         swapping.current = true
 
+        // com filtro, troca de lugar com a vizinha visível dentro da lista completa
+        const targetId = visible[to].id
         setTasks(list => {
             const next = [...list]
-            const [item] = next.splice(from, 1)
-            next.splice(to, 0, item)
+            const a = next.findIndex(t => t.id === dragId)
+            const b = next.findIndex(t => t.id === targetId)
+            const [item] = next.splice(a, 1)
+            next.splice(b, 0, item)
             return next
         })
     }
@@ -422,20 +440,20 @@ export default function Today() {
                     <button
                         type="button"
                         role="tab"
-                        aria-selected={section === 'notes'}
-                        className={`section-tab ${section === 'notes' ? 'is-active' : ''}`}
-                        onClick={() => chooseSection('notes')}
-                    >
-                        Anotações
-                    </button>
-                    <button
-                        type="button"
-                        role="tab"
                         aria-selected={section === 'goals'}
                         className={`section-tab ${section === 'goals' ? 'is-active' : ''}`}
                         onClick={() => chooseSection('goals')}
                     >
                         Metas
+                    </button>
+                    <button
+                        type="button"
+                        role="tab"
+                        aria-selected={section === 'notes'}
+                        className={`section-tab ${section === 'notes' ? 'is-active' : ''}`}
+                        onClick={() => chooseSection('notes')}
+                    >
+                        Anotações
                     </button>
                 </div>
 
@@ -496,6 +514,8 @@ export default function Today() {
                             </div>
                         </div>
 
+                        <TagFilter value={tagFilter} onChange={chooseTagFilter} />
+
                         <button
                             className="task-add"
                             type="button"
@@ -510,9 +530,9 @@ export default function Today() {
                     {error && <p className="task-error">{error}</p>}
                     {notice && <p className="panel-description">{notice}</p>}
 
-                    {tasks.length > 0 ? (
+                    {visible.length > 0 ? (
                         <ul className="task-list" ref={listRef}>
-                            {tasks.map(task => (
+                            {visible.map(task => (
                                 <li
                                     key={task.id}
                                     data-task-id={task.id}
@@ -653,6 +673,17 @@ export default function Today() {
                                 </li>
                             ))}
                         </ul>
+                    ) : tasks.length > 0 ? (
+                        <div className="empty-state">
+                            <h3 className="empty-title">Nada com a tag “{tagFilter.name}”</h3>
+
+                            <p className="empty-description">
+                                Nenhuma tarefa deste dia usa essa tag.{' '}
+                                <button type="button" className="link-btn" onClick={() => chooseTagFilter(null)}>
+                                    Mostrar todas
+                                </button>
+                            </p>
+                        </div>
                     ) : (
                         <div className="empty-state">
                             <div className="empty-icon" aria-hidden="true">✓</div>
