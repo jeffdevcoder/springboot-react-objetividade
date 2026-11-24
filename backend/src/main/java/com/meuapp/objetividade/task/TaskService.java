@@ -111,6 +111,7 @@ public class TaskService {
         tasks.flush();
         User owner = user(email);
         task.setUser(owner);
+        if (task.isUrgent()) moveToTop(task, owner);
         tasks.save(task);
         return toView(task, LocalDate.now(), false);
     }
@@ -134,6 +135,7 @@ public class TaskService {
         task.setEmoji(cleanEmoji(req.emoji()));
         task.setStartDate(start);
         task.setEndDate(end);
+        if (req.urgent() && !task.isUrgent()) moveToTop(task, task.getUser());
         task.setUrgent(req.urgent());
         applyWeekdays(task, req);
         task.setTime(req.time());
@@ -162,6 +164,15 @@ public class TaskService {
     @Transactional
     public void uncomplete(String email, Long id) {
         completions.deleteByTaskAndDate(find(email, id), LocalDate.now());
+    }
+
+    /** Ao ligar "Urgente", a tarefa vai para o topo da lista; o usuário pode arrastá-la depois. */
+    private void moveToTop(Task task, User owner) {
+        int first = tasks.findByUserAndActiveTrueOrderByIdAsc(owner).stream()
+                .filter(t -> t != task)
+                .mapToInt(Task::getPosition)
+                .min().orElse(1);
+        task.setPosition(first - 1);
     }
 
     private Task find(String email, Long id) {
