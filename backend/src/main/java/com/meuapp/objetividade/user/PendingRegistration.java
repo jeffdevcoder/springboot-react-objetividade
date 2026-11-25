@@ -4,7 +4,6 @@ import jakarta.persistence.*;
 
 import java.time.Instant;
 
-/** Cadastro aguardando a confirmação do código enviado por e-mail. */
 @Entity
 @Table(name = "pending_registrations")
 public class PendingRegistration {
@@ -19,11 +18,9 @@ public class PendingRegistration {
     @Column(nullable = false)
     private String name;
 
-    /** Senha já criptografada (BCrypt). */
     @Column(name = "password_hash", nullable = false)
     private String passwordHash;
 
-    /** Código de 6 dígitos criptografado (BCrypt). */
     @Column(name = "code_hash", nullable = false)
     private String codeHash;
 

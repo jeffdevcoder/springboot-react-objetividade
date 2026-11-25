@@ -1,7 +1,6 @@
-// fogos de artifício por cima da página (canvas temporário, não bloqueia cliques)
 const COLORS = ['#ef4444', '#f59e0b', '#facc15', '#22c55e', '#06b6d4', '#3b82f6', '#8b5cf6', '#ec4899']
 const ROCKETS = 6
-const DURATION = 3200 // ms até o canvas sumir
+const DURATION = 3200
 
 let running = false
 
@@ -33,7 +32,6 @@ export function launchFireworks() {
     const rockets = []
     const sparks = []
 
-    // foguetes saem em sequência, de pontos diferentes da base da tela
     for (let i = 0; i < ROCKETS; i++) {
         rockets.push({
             delay: i * 260 + rand(0, 120),
@@ -68,7 +66,7 @@ export function launchFireworks() {
     let last = start
 
     function frame(now) {
-        const dt = Math.min((now - last) / 16.67, 3) // em "quadros de 60fps"
+        const dt = Math.min((now - last) / 16.67, 3)
         last = now
         const t = now - start
 
@@ -85,7 +83,6 @@ export function launchFireworks() {
             ctx.beginPath()
             ctx.arc(r.x, r.y, 2.4, 0, Math.PI * 2)
             ctx.fill()
-            // explode no topo da subida
             if (r.vy >= -1.2) {
                 r.done = true
                 explode(r)

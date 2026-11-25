@@ -3,8 +3,6 @@ import { useLayoutEffect, useRef, useState } from 'react'
 const GAP = 8
 const MARGIN = 12
 
-// Posição fixa relativa ao botão (o elemento pai do popover), para não ser cortado por listas/modais com rolagem.
-// Abre abaixo do botão; se não couber, abre acima. `layoutKey` refaz o cálculo quando o tamanho do popover muda.
 export function usePopoverPosition(layoutKey) {
     const popRef = useRef(null)
     const [pos, setPos] = useState(null)

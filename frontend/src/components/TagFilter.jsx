@@ -5,11 +5,9 @@ import FilterMenu from './FilterMenu'
 
 const ALL = 'all'
 
-// filtro de "Minhas tarefas": escolher uma tag mostra só as tarefas com ela
 export default function TagFilter({ value, onChange }) {
     const [tags, setTags] = useState([])
 
-    // recarrega ao montar e ao abrir, para refletir tags criadas/editadas/excluídas
     const load = useCallback(() => {
         api('/tags')
             .then(list => {
@@ -22,10 +20,8 @@ export default function TagFilter({ value, onChange }) {
             .catch(() => {})
     }, [value, onChange])
 
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     useEffect(load, [])
 
-    // enquanto a lista não chega, a tag salva já aparece no botão
     const list = value && !tags.some(t => t.id === value.id) ? [...tags, value] : tags
 
     const options = [

@@ -64,5 +64,4 @@
 .emoji-preview { margin-right: auto; font-size: 22px; line-height: 1; }
 .emoji-actions .task-btn { padding: 0.45rem 1rem; }
 
-/* emoji padrão quando a tarefa ainda não tem um */
 .emoji-empty { filter: grayscale(1); opacity: 0.4; }

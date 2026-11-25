@@ -1,4 +1,3 @@
-// Fotos de perfil em frontend/public. Manter igual a UserService.AVATARS no backend.
 export const AVATARS = [
     { file: 'goku.jpeg', name: 'Goku' },
     { file: 'luffy.jpeg', name: 'Luffy' },

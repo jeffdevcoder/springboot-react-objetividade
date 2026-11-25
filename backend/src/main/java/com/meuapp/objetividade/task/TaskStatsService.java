@@ -12,11 +12,6 @@ import java.time.LocalDate;
 import java.time.temporal.TemporalAdjusters;
 import java.util.*;
 
-/**
- * Estatísticas das tarefas: em cada dia do período (até hoje), conta o que estava programado
- * e o que foi marcado como feito. Tarefas "uma vez" contam uma única vez:
- * como feitas no dia em que foram concluídas, ou como pendentes enquanto não forem.
- */
 @Service
 public class TaskStatsService {
 
@@ -39,7 +34,6 @@ public class TaskStatsService {
             case "year" -> today.withDayOfYear(1);
             default -> throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Período inválido");
         };
-        // fim do período: só para desenhar o gráfico completo; dias futuros não contam
         LocalDate periodEnd = switch (period) {
             case "week" -> from.plusDays(6);
             case "month" -> today.withDayOfMonth(today.lengthOfMonth());
@@ -49,7 +43,6 @@ public class TaskStatsService {
         User user = users.findByEmail(email).orElseThrow();
         List<Task> all = tasks.findByUserAndActiveTrueOrderByIdAsc(user);
 
-        // conclusões do período numa consulta só: tarefa -> dias concluídos
         Map<Long, Set<LocalDate>> doneDays = new HashMap<>();
         if (!all.isEmpty()) {
             for (TaskCompletion c : completions.findByTaskInAndDateBetween(all, from, today)) {
@@ -57,10 +50,10 @@ public class TaskStatsService {
             }
         }
 
-        Map<LocalDate, int[]> perDay = new LinkedHashMap<>(); // [programadas, feitas]
+        Map<LocalDate, int[]> perDay = new LinkedHashMap<>();
         for (LocalDate d = from; !d.isAfter(today); d = d.plusDays(1)) perDay.put(d, new int[2]);
 
-        Map<Long, int[]> perTask = new LinkedHashMap<>();       // [feitas, não feitas]
+        Map<Long, int[]> perTask = new LinkedHashMap<>();
 
         for (Task t : all) {
             Set<LocalDate> done = doneDays.getOrDefault(t.getId(), Set.of());
@@ -73,7 +66,6 @@ public class TaskStatsService {
                     LocalDate c = completedOn.get();
                     if (!c.isBefore(from) && !c.isAfter(today)) count(perDay, perTask, t, c, true);
                 } else if (!t.getStartDate().isAfter(today)) {
-                    // ainda pendente (inclusive atrasada de antes do período)
                     LocalDate day = t.getStartDate().isBefore(from) ? from : t.getStartDate();
                     count(perDay, perTask, t, day, false);
                 }
@@ -112,9 +104,8 @@ public class TaskStatsService {
         perTask.computeIfAbsent(t.getId(), k -> new int[2])[done ? 0 : 1]++;
     }
 
-    /** Soma feito / não feito por tag (tarefas sem tag ficam juntas), da tag mais programada para a menos. */
     private static List<TaskStatsView.TagStat> tags(Map<Long, int[]> perTask, Map<Long, Task> byId) {
-        Map<Long, int[]> perTag = new LinkedHashMap<>();   // tag id (null = sem tag) -> [feitas, não feitas]
+        Map<Long, int[]> perTag = new LinkedHashMap<>();
         Map<Long, Tag> tagById = new HashMap<>();
         perTask.forEach((taskId, counts) -> {
             Tag tag = byId.get(taskId).getTag();

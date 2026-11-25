@@ -22,7 +22,6 @@ public class UserService {
         return repository.existsByEmail(email.toLowerCase());
     }
 
-    /** Garante que nome e e-mail ainda não estão em uso. */
     public void checkAvailable(String name, String email) {
         if (repository.existsByNameIgnoreCase(name)) {
             throw new ResponseStatusException(
@@ -39,7 +38,6 @@ public class UserService {
         }
     }
 
-    /** Cria a conta depois que o e-mail foi confirmado (a senha já vem criptografada). */
     public User createVerified(String name, String email, String passwordHash) {
         checkAvailable(name, email);
 
@@ -54,7 +52,6 @@ public class UserService {
         return repository.findByEmail(email.toLowerCase()).orElseThrow();
     }
 
-    // fotos de perfil disponíveis em frontend/public (manter igual a frontend/src/avatars.js)
     public static final Set<String> AVATARS = Set.of(
             "asuka.webp", "chad.jpeg", "goku.jpeg", "ichigo.jpeg", "luffy.jpeg", "nami.jpeg",
             "naruto.jpeg", "rey.jpeg", "robin.jpg", "sailormoon.jpeg", "shinji.jpeg", "zoro.jpeg");

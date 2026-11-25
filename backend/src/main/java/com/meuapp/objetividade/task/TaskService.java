@@ -71,7 +71,6 @@ public class TaskService {
         if (!task.occursOn(day)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Tarefa não é deste dia");
         }
-        // "uma vez" só pode ser concluída em um único dia
         if (task.getRecurrence() == Recurrence.ONCE
                 && completions.existsByTaskAndDateGreaterThanEqual(task, task.getStartDate())
                 && !completions.existsByTaskAndDate(task, day)) {
@@ -166,7 +165,6 @@ public class TaskService {
         completions.deleteByTaskAndDate(find(email, id), LocalDate.now());
     }
 
-    /** Ao ligar "Urgente", a tarefa vai para o topo da lista; o usuário pode arrastá-la depois. */
     private void moveToTop(Task task, User owner) {
         int first = tasks.findByUserAndActiveTrueOrderByIdAsc(owner).stream()
                 .filter(t -> t != task)

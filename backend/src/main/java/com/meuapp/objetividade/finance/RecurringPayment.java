@@ -6,7 +6,6 @@ import org.hibernate.annotations.OnDeleteAction;
 
 import java.time.LocalDate;
 
-/** Marca um mês de um lançamento fixo como pago. */
 @Entity
 @Table(name = "recurring_payments",
         uniqueConstraints = @UniqueConstraint(columnNames = {"recurring_id", "paid_month"}))
@@ -21,11 +20,9 @@ public class RecurringPayment {
     @OnDelete(action = OnDeleteAction.CASCADE)
     private RecurringTransaction recurring;
 
-    /** Primeiro dia do mês pago. */
     @Column(name = "paid_month", nullable = false)
     private LocalDate month;
 
-    /** Receita "Contas pagas" gerada para este mês. */
     @Column(name = "income_id")
     private Long incomeId;
 

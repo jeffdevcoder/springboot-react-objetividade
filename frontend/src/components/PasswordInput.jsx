@@ -1,6 +1,5 @@
 import { useState } from 'react'
 
-// Campo de senha com o botão de "olhinho" para mostrar/ocultar o que foi digitado.
 export default function PasswordInput({ className = '', ...props }) {
     const [visible, setVisible] = useState(false)
 

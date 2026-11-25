@@ -212,13 +212,10 @@ public class FinanceService {
         return TransactionView.ofRecurring(r, date, paid);
     }
 
-    // ---- receita automática "Contas pagas" ----
-
     private static final String PAID_CATEGORY = "Contas pagas";
     private static final String PAID_EMOJI = "✅";
     private static final String PAID_PREFERRED_COLOR = "#10B981";
 
-    /** Marca/desmarca um gasto comum ou parcela, criando/removendo a receita "Contas pagas". */
     private void markPaid(Transaction t, boolean paid) {
         if (paid) {
             if (t.getPaidIncomeId() == null || repository.findById(t.getPaidIncomeId()).isEmpty()) {
@@ -238,20 +235,17 @@ public class FinanceService {
         }
     }
 
-    /** Mantém a receita automática com o mesmo valor do gasto (a data continua a do pagamento). */
     private void syncPaidIncome(Transaction t) {
         if (!t.isPaid() || t.getPaidIncomeId() == null) return;
         repository.findById(t.getPaidIncomeId())
                 .ifPresent(income -> income.setAmountCents(t.getAmountCents()));
     }
 
-    /** Limpa os vínculos de pagamento antes de excluir um lançamento. */
     private void beforeDelete(User user, Transaction t) {
         if (t.getType() == TransactionType.EXPENSE) {
             markPaid(t, false);
             return;
         }
-        // é uma receita automática? o gasto correspondente volta a ficar pendente
         repository.findFirstByUserAndPaidIncomeId(user, t.getId()).ifPresent(expense -> {
             expense.setPaidIncomeId(null);
             expense.setPaid(false);
@@ -264,14 +258,12 @@ public class FinanceService {
         paymentRepo.delete(p);
     }
 
-    /** Remove os pagamentos do fixo a partir de {@code fromMonth} (todos, se null). */
     private void dropPayments(RecurringTransaction r, LocalDate fromMonth) {
         for (RecurringPayment p : paymentRepo.findByRecurring(r)) {
             if (fromMonth == null || !p.getMonth().isBefore(fromMonth)) dropPayment(p);
         }
     }
 
-    /** Após editar um fixo, ajusta o valor das receitas automáticas dos meses afetados. */
     private void syncRecurringPayments(RecurringTransaction r, LocalDate fromMonth) {
         for (RecurringPayment p : paymentRepo.findByRecurring(r)) {
             if (p.getMonth().isBefore(fromMonth)) continue;
@@ -286,7 +278,6 @@ public class FinanceService {
         }
     }
 
-    /** A receita entra com a data de hoje: o dia em que a conta foi paga. */
     private Transaction createPaidIncome(User user, long amountCents, String description) {
         FinanceCategory category = paidCategory(user);
         Transaction income = new Transaction();
@@ -299,7 +290,6 @@ public class FinanceService {
         return repository.save(income);
     }
 
-    /** Categoria de receita "Contas pagas", criada na primeira vez que for necessária. */
     private FinanceCategory paidCategory(User user) {
         Optional<FinanceCategory> existing = categoryRepo.findFirstByUserAndNameIgnoreCase(user, PAID_CATEGORY);
         if (existing.isPresent()) {
@@ -466,12 +456,11 @@ public class FinanceService {
             return TransactionView.of(t);
         }
 
-        // continua fixo: a data escolhida vira o novo início
         LocalDate fromStart = from.atDay(1);
         LocalDate newStart = req.date() != null ? req.date().withDayOfMonth(1) : fromStart;
         int day = req.date() != null ? req.date().getDayOfMonth() : old.getDayOfMonth();
 
-        RecurringTransaction target = old; // no primeiro mês, edita o próprio fixo
+        RecurringTransaction target = old;
         if (fromStart.isAfter(old.getStartMonth()) && !newStart.isBefore(fromStart)) {
             LocalDate oldEnd = old.getEndMonth();
             dropPayments(old, fromStart);

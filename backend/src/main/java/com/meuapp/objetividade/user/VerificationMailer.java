@@ -16,7 +16,6 @@ import org.thymeleaf.context.Context;
 
 import java.util.Locale;
 
-/** Envia e-mails com códigos de 6 dígitos (confirmação de cadastro e redefinição de senha). */
 @Component
 public class VerificationMailer {
 
@@ -37,7 +36,6 @@ public class VerificationMailer {
         this.from = from;
     }
 
-    /** Código de confirmação do cadastro. */
     public void sendCode(String to, String name, String code, int minutesValid) {
         send(to, name, code, minutesValid,
                 "Confirme seu e-mail",
@@ -46,7 +44,6 @@ public class VerificationMailer {
                 code + " é o seu código de confirmação");
     }
 
-    /** Código para redefinir a senha ("esqueci minha senha"). */
     public void sendPasswordResetCode(String to, String name, String code, int minutesValid) {
         send(to, name, code, minutesValid,
                 "Redefinir senha",
@@ -59,7 +56,6 @@ public class VerificationMailer {
                       String eyebrow, String intro, String ignoreNote, String subject) {
         JavaMailSender sender = mailSender.getIfAvailable();
         if (host.isBlank() || sender == null) {
-            // desenvolvimento: sem SMTP configurado, o código vai para o log
             log.warn("E-mail não configurado (MAIL_HOST). [{}] Código para {}: {}", eyebrow, to, code);
             return;
         }

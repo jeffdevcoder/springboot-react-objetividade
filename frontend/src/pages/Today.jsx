@@ -120,7 +120,7 @@ export default function Today() {
         try {
             if (tag) localStorage.setItem('taskTagFilter', JSON.stringify({ id: tag.id, name: tag.name, color: tag.color }))
             else localStorage.removeItem('taskTagFilter')
-        } catch { /* sem armazenamento */ }
+        } catch {}
     }
     const [openSubs, setOpenSubs] = useState(() => new Set())
     const listRef = useRef(null)
@@ -136,7 +136,6 @@ export default function Today() {
         const saved = localStorage.getItem('section')
         return ['finance', 'study', 'notes', 'goals'].includes(saved) ? saved : 'tasks'
     })
-    // só anima a troca depois de um clique (no carregamento, quem anima é a entrada da página)
     const [switched, setSwitched] = useState(false)
 
     useLayoutEffect(() => {
@@ -166,7 +165,7 @@ export default function Today() {
         if (next === section) return
         setSwitched(true)
         setSection(next)
-        try { localStorage.setItem('section', next) } catch { /* sem armazenamento */ }
+        try { localStorage.setItem('section', next) } catch {}
     }
 
     useEffect(() => {
@@ -329,7 +328,6 @@ export default function Today() {
 
         swapping.current = true
 
-        // com filtro, troca de lugar com a vizinha visível dentro da lista completa
         const targetId = visible[to].id
         setTasks(list => {
             const next = [...list]
@@ -390,7 +388,7 @@ export default function Today() {
                             : section === 'study'
                                 ? 'Seus estudos.'
                                 : section === 'notes'
-                                    ? 'Suas anotações.'
+                                    ? 'Suas ideias.'
                                     : section === 'goals'
                                         ? 'Suas metas.'
                                         : isToday ? 'Checklist de hoje.' : 'Checklist do dia.'}
@@ -402,7 +400,7 @@ export default function Today() {
                             : section === 'study'
                                 ? 'Foque, registre e acompanhe suas horas por matéria.'
                                 : section === 'notes'
-                                    ? 'Ideias, lembretes e datas importantes, sem perder nada de vista.'
+                                    ? 'Anote o que surgir, marque datas importantes e não perca nada de vista.'
                                     : section === 'goals'
                                         ? 'Defina onde quer chegar, até quando, e comemore cada conquista.'
                                         : 'Um passo de cada vez. Organize o que importa e mantenha o foco no seu dia.'}
@@ -453,7 +451,7 @@ export default function Today() {
                         className={`section-tab ${section === 'notes' ? 'is-active' : ''}`}
                         onClick={() => chooseSection('notes')}
                     >
-                        Anotações
+                        Ideias
                     </button>
                 </div>
 

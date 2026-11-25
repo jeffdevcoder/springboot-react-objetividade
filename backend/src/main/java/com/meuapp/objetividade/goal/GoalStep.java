@@ -2,7 +2,6 @@ package com.meuapp.objetividade.goal;
 
 import jakarta.persistence.*;
 
-// subtópico (etapa) de uma meta
 @Entity
 @Table(name = "goal_steps")
 public class GoalStep {

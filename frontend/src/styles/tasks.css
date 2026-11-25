@@ -1,8 +1,8 @@
 .dashboard,
 .task-overlay {
-    --tk-bg: #ffffff;      /* fundo do pop-up */
-    --tk-fg: #1a1a1a;      /* texto */
-    --tk-accent: #1a1a1a;  /* botão principal / selecionado */
+    --tk-bg: #ffffff;
+    --tk-fg: #1a1a1a;
+    --tk-accent: #1a1a1a;
 }
 
 .task-add {
@@ -211,7 +211,6 @@
 .task-btn.is-danger:hover { opacity: 0.85; }
 .task-btn.is-danger.is-confirming { gap: 0.5rem; }
 
-/* o texto abre e fecha suavemente */
 .task-confirm-text {
     max-width: 0;
     opacity: 0;
@@ -223,7 +222,6 @@
     opacity: 1;
 }
 
-/* em telas estreitas os botões podem quebrar de linha em vez de apertar */
 .task-actions { flex-wrap: wrap; row-gap: 0.5rem; }
 
 .task-trash { display: inline-flex; color: #ff5b5b; }
@@ -407,7 +405,6 @@
 .date-chip:not(.is-today):hover { background: color-mix(in srgb, currentColor 8%, transparent); }
 .date-chip.is-today:hover { opacity: 0.9; }
 
-/* calendário */
 .day-nav { position: relative; }
 
 .calendar-backdrop { position: fixed; inset: 0; z-index: 29; }
@@ -485,7 +482,6 @@
 }
 .calendar-today:hover { background: color-mix(in srgb, currentColor 8%, transparent); }
 
-/* campo de data que abre o calendário */
 .form-input.date-field {
     display: flex;
     align-items: center;
@@ -497,7 +493,6 @@
 .form-input.date-field.is-empty { color: #8a8c84; }
 .date-field svg { flex-shrink: 0; opacity: 0.6; }
 
-/* calendário dentro do pop-up: alinhado à esquerda ou à direita da linha de datas */
 .calendar.is-left,
 .calendar.is-right {
     width: min(290px, 100%);
@@ -512,7 +507,6 @@
     to   { opacity: 1; transform: none; }
 }
 
-/* dias e botão bloqueados (antes da data mínima) */
 .calendar-day:disabled { opacity: 0.3; cursor: not-allowed; }
 .calendar-day:disabled:hover { background: transparent; }
 .calendar-today:disabled { opacity: 0.35; cursor: not-allowed; }
@@ -580,7 +574,6 @@
     box-shadow: 0 0 0 2px var(--color-surface), 0 0 0 4px var(--color-text);
 }
 
-/* lista de tags */
 .task-modal.tag-modal { width: min(92vw, 340px); }
 .tag-form { display: flex; flex-direction: column; gap: 0.75rem; }
 
@@ -1036,7 +1029,6 @@ html[data-theme="dark"] .task-overlay .task-noend input[type="checkbox"]:checked
     cursor: pointer;
 }
 
-/* foto de perfil */
 img.user-avatar { object-fit: cover; background: none; }
 
 .account-avatar-section { align-items: stretch; padding-top: 0; border-top: 0; }
@@ -1069,7 +1061,6 @@ img.user-avatar { object-fit: cover; background: none; }
     display: flex;
     align-items: center;
     gap: 14px;
-    /* metade da largura menos metade da foto central: deixa a primeira e a última centralizarem */
     padding: 10px calc(50% - 44px);
     overflow-x: auto;
     scroll-snap-type: x mandatory;
@@ -1134,7 +1125,6 @@ img.user-avatar { object-fit: cover; background: none; }
     .avatar-carousel { grid-template-columns: minmax(0, 1fr); }
 }
 
-/* filtro de tags em "Minhas tarefas" */
 .tag-filter { position: relative; margin-left: auto; }
 .tag-filter-btn {
     display: inline-flex;

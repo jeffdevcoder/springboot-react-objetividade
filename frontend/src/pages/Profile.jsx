@@ -33,7 +33,6 @@ const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`
 export default function Profile() {
     const { user } = useAuth()
     const [period, setPeriod] = useState('week')
-    // resultado da última busca: { period, stats } ou { period, error }
     const [result, setResult] = useState(null)
     const [editing, setEditing] = useState(false)
 
@@ -154,8 +153,6 @@ export default function Profile() {
     )
 }
 
-/* ---------- blocos comuns ---------- */
-
 function Card({ icon, title, wide, children }) {
     return (
         <article className={`dashboard-panel profile-card ${wide ? 'is-wide' : ''}`}>
@@ -214,8 +211,6 @@ function Stat({ value, label, tone }) {
     )
 }
 
-// barras por dia: height = valor do dia em relação ao maior; fill = parte "feita"
-// no ano, os dias viram 12 barras (uma por mês), somando os campos numéricos
 function byMonth(days) {
     const months = []
     for (const d of days) {
@@ -262,7 +257,6 @@ function DayBars({ days, period, value, fill, tip }) {
     )
 }
 
-// lista com barra horizontal proporcional (categorias, matérias)
 function ShareList({ items, total, format }) {
     return (
         <ul className="profile-shares">
@@ -284,8 +278,6 @@ function ShareList({ items, total, format }) {
         </ul>
     )
 }
-
-/* ---------- tarefas ---------- */
 
 function TasksCard({ data, noun }) {
     if (data.planned === 0) {
@@ -335,7 +327,6 @@ function TasksCard({ data, noun }) {
     )
 }
 
-// feito / não feito por tag: barra na cor da tag mostra a parte feita
 function TagList({ tags }) {
     return (
         <ul className="profile-shares">
@@ -360,8 +351,6 @@ function TagList({ tags }) {
         </ul>
     )
 }
-
-/* ---------- finanças ---------- */
 
 function FinanceCard({ data, noun }) {
     if (data.count === 0) {
@@ -403,8 +392,6 @@ function FinanceCard({ data, noun }) {
     )
 }
 
-/* ---------- estudos ---------- */
-
 function StudyCard({ data, noun, period }) {
     if (data.seconds === 0) {
         return (
@@ -437,8 +424,6 @@ function StudyCard({ data, noun, period }) {
         </Card>
     )
 }
-
-/* ---------- metas ---------- */
 
 function GoalsCard({ data, noun }) {
     return (
@@ -493,11 +478,9 @@ function GoalsCard({ data, noun }) {
     )
 }
 
-/* ---------- anotações ---------- */
-
 function NotesCard({ data, noun }) {
     return (
-        <Card icon="📝" title="Anotações">
+        <Card icon="📝" title="Ideias">
             <div className="profile-stats-row">
                 <Stat value={data.total} label="No total" />
                 <Stat value={data.created} label={`Criadas ${noun}`} />
@@ -505,7 +488,7 @@ function NotesCard({ data, noun }) {
 
             <h4 className="profile-subtitle">Próximas datas</h4>
             {data.upcoming.length === 0 ? (
-                <Empty>Nenhuma anotação com data marcada pela frente.</Empty>
+                <Empty>Nenhuma ideia com data marcada pela frente.</Empty>
             ) : (
                 <ul className="profile-list-plain">
                     {data.upcoming.map(n => (

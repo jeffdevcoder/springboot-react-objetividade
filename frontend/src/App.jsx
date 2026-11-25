@@ -11,7 +11,6 @@ import { EMAIL_FEATURES } from './features'
 
 function PrivateRoute({ children }) {
   const { user, loading } = useAuth()
-  // enquanto confere a sessão, não mostra nada: a página entra direto com a animação
   if (loading) return null
   return user ? children : <Navigate to="/login" replace />
 }
@@ -28,7 +27,6 @@ export default function App() {
   )
 }
 
-// A key muda a cada rota: o React recria o wrapper e a animação de entrada roda de novo.
 function AnimatedRoutes() {
   const location = useLocation()
   return (
@@ -45,7 +43,6 @@ function AnimatedRoutes() {
   )
 }
 
-// Depois da entrada, desliga a animação: o que aparecer depois (troca de aba, listas) não refaz a cascata.
 const ENTER_MS = 1200
 
 function PageEnter({ children }) {

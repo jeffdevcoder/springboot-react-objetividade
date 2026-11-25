@@ -11,7 +11,6 @@ import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.Instant;
 
-/** Cadastro em duas etapas: envia um código por e-mail e só cria a conta após a confirmação. */
 @Service
 public class RegistrationService {
 
@@ -36,11 +35,6 @@ public class RegistrationService {
         this.emailVerification = emailVerification;
     }
 
-    /**
-     * Valida os dados, guarda o cadastro pendente e envia o código.
-     * Com a confirmação por e-mail desligada, cria a conta na hora.
-     * @return true se a conta ficou pendente aguardando o código
-     */
     @Transactional
     public boolean start(RegisterForm form) {
         String name = form.getName().trim();
@@ -69,7 +63,6 @@ public class RegistrationService {
         sendNewCode(p);
     }
 
-    /** Confere o código e cria a conta. Tentativas erradas ficam gravadas mesmo com o erro. */
     @Transactional(noRollbackFor = ResponseStatusException.class)
     public void verify(String rawEmail, String rawCode) {
         PendingRegistration p = find(rawEmail);
@@ -102,7 +95,6 @@ public class RegistrationService {
         p.setLastSentAt(now);
         p.setAttempts(0);
         pending.save(p);
-        // se o envio falhar, a exceção desfaz a transação
         mailer.sendCode(p.getEmail(), p.getName(), code, CODE_MINUTES);
     }
 

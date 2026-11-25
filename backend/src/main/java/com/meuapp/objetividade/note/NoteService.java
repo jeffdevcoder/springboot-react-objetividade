@@ -13,7 +13,6 @@ import java.util.List;
 @Service
 public class NoteService {
 
-    // com data primeiro (a mais próxima no topo), depois as sem data (mais recentes primeiro)
     private static final Comparator<Note> ORDER = Comparator
             .comparing(Note::getDate, Comparator.nullsLast(Comparator.naturalOrder()))
             .thenComparing(Note::getCreatedAt, Comparator.reverseOrder());

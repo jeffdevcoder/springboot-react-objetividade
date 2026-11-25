@@ -23,7 +23,6 @@ import java.time.YearMonth;
 import java.time.temporal.TemporalAdjusters;
 import java.util.*;
 
-/** Junta as estatísticas de todas as áreas (tarefas, finanças, estudos, anotações e metas). */
 @Service
 public class ProfileStatsService {
 
@@ -89,7 +88,6 @@ public class ProfileStatsService {
     private ProfileStatsView.Finance finance(User user, String email, LocalDate from, LocalDate to) {
         if (!transactions.existsByUser(user) && !recurring.existsByUser(user)) return null;
 
-        // o período pode cruzar vários meses (semana na virada, ano): usa a mesma visão mensal da aba Finanças
         List<TransactionView> items = new ArrayList<>();
         for (YearMonth m = YearMonth.from(from); !m.isAfter(YearMonth.from(to)); m = m.plusMonths(1)) {
             for (TransactionView v : finance.month(email, m)) {

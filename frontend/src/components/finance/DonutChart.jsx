@@ -9,7 +9,6 @@ const GAP = 3
 export default function DonutChart({ segments, centerLabel, centerValue, centerHint, negative = false }) {
     const [ready, setReady] = useState(false)
 
-    // começa vazio e preenche no primeiro quadro, para animar a entrada
     useEffect(() => {
         const id = requestAnimationFrame(() => setReady(true))
         return () => cancelAnimationFrame(id)

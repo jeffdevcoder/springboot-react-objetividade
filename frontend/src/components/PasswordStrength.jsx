@@ -1,7 +1,6 @@
 import { PASSWORD_RULES, isStrongPassword } from '../password'
 import '../styles/password.css'
 
-// Barra de força da senha: vermelha (fraca) até verde (forte, todas as regras atendidas).
 export default function PasswordStrength({ password }) {
     if (!password) return null
 

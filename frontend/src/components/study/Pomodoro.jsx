@@ -33,7 +33,6 @@ function load() {
             focus: saved.mins.focus ?? base.mins.focus,
             break: saved.mins.break ?? base.mins.break,
         }
-        // estado de versões antigas (pausa curta/longa/personalizada) volta para o foco
         if (!MODES.includes(saved.mode)) {
             return { ...base, subjectId: saved.subjectId ?? null, mins, remainingMs: mins.focus * 60000 }
         }
@@ -55,7 +54,6 @@ export default function Pomodoro({ subjects, selectId, onSaved, onManage }) {
     const [error, setError] = useState('')
     const [appliedSelect, setAppliedSelect] = useState(selectId)
 
-    // matéria recém-criada: seleciona assim que ela chega na lista (se o timer não estiver rodando)
     if (selectId !== appliedSelect && subjects.some(s => s.id === selectId)) {
         setAppliedSelect(selectId)
         if (!t.running) setT(x => ({ ...x, subjectId: selectId }))
@@ -74,7 +72,7 @@ export default function Pomodoro({ subjects, selectId, onSaved, onManage }) {
     const text = clock(remaining)
 
     useEffect(() => {
-        try { localStorage.setItem(KEY, JSON.stringify(t)) } catch { /* sem armazenamento */ }
+        try { localStorage.setItem(KEY, JSON.stringify(t)) } catch {}
     }, [t])
 
     useEffect(() => {

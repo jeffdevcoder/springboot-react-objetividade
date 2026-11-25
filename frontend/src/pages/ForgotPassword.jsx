@@ -13,7 +13,6 @@ const RESEND_SECONDS = 60
 export default function ForgotPassword() {
     const navigate = useNavigate()
 
-    // etapa 1: e-mail · etapa 2: código + nova senha
     const [step, setStep] = useState('email')
     const [email, setEmail] = useState('')
     const [code, setCode] = useState('')

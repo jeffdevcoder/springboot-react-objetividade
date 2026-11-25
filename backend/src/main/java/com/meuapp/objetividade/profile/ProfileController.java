@@ -14,7 +14,6 @@ public class ProfileController {
         this.stats = stats;
     }
 
-    /** Estatísticas de todas as áreas na semana, no mês ou no ano atual (period = week | month | year). */
     @GetMapping("/stats")
     public ProfileStatsView stats(@RequestParam(defaultValue = "week") String period, Principal principal) {
         return stats.stats(principal.getName(), period);

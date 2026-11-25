@@ -7,10 +7,6 @@ import java.time.Instant;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-/**
- * Bloqueia o login de um e-mail depois de várias senhas erradas seguidas,
- * para dificultar ataques de força bruta. Fica em memória: reiniciar o backend zera os contadores.
- */
 @Service
 public class LoginAttemptService {
 
@@ -21,7 +17,6 @@ public class LoginAttemptService {
 
     private final Map<String, Attempts> attempts = new ConcurrentHashMap<>();
 
-    /** Segundos restantes de bloqueio, ou 0 se o login está liberado. */
     public long secondsLocked(String email) {
         Attempts a = attempts.get(key(email));
         if (a == null || a.lockedUntil() == null) return 0;
@@ -36,7 +31,6 @@ public class LoginAttemptService {
     public void failed(String email) {
         Instant now = Instant.now();
         attempts.compute(key(email), (k, a) -> {
-            // falhas antigas (fora da janela) não contam mais
             int failures = (a == null || a.lastFailure().isBefore(now.minus(LOCK_TIME))) ? 1 : a.failures() + 1;
             Instant lockedUntil = failures >= MAX_ATTEMPTS ? now.plus(LOCK_TIME) : null;
             return new Attempts(failures, lockedUntil, now);

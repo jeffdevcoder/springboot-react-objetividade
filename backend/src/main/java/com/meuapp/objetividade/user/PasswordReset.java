@@ -4,7 +4,6 @@ import jakarta.persistence.*;
 
 import java.time.Instant;
 
-/** Pedido de redefinição de senha aguardando a confirmação do código enviado por e-mail. */
 @Entity
 @Table(name = "password_resets")
 public class PasswordReset {
@@ -16,7 +15,6 @@ public class PasswordReset {
     @Column(nullable = false, unique = true)
     private String email;
 
-    /** Código de 6 dígitos criptografado (BCrypt). */
     @Column(name = "code_hash", nullable = false)
     private String codeHash;
 

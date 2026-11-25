@@ -12,12 +12,6 @@ const Mark = ({ option }) =>
         : option.color ? <span className="tag-dot" style={{ background: option.color }} />
             : null
 
-/*
- * botão + menu de escolha única.
- * options: [{ key, label, color?, emoji?, divider?, tone? }]; a primeira é o "sem filtro".
- * tone: nome de um tom (ex.: 'expense') que tinge o botão/item com a classe `tone-<nome>`.
- * divider: coloca uma linha separadora antes da opção.
- */
 export default function FilterMenu({ options, value, onChange, placeholder, emptyText, onOpen }) {
     const [open, setOpen] = useState(false)
     const current = options.find(o => o.key === value) ?? options[0]
@@ -29,7 +23,6 @@ export default function FilterMenu({ options, value, onChange, placeholder, empt
         const onKey = e => e.key === 'Escape' && setOpen(false)
         window.addEventListener('keydown', onKey)
         return () => window.removeEventListener('keydown', onKey)
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open])
 
     function pick(key) {

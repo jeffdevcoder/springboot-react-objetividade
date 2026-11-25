@@ -23,7 +23,6 @@ public class SpaConfig implements WebMvcConfigurer {
                         Resource file = location.createRelative(resourcePath);
                         if (file.exists() && file.isReadable()) return file;
 
-                        // a API nunca cai aqui; rotas do React (/home, /login...) voltam o index.html
                         if (resourcePath.startsWith("api/")) return null;
                         return new ClassPathResource("/static/index.html");
                     }

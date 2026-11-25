@@ -50,7 +50,6 @@ export default function GoalModal({ open, goal, onClose, onSaved, onDeleted }) {
         }
     }, [open, editing, onClose])
 
-    // arrastar subtópicos para mudar a ordem
     useEffect(() => {
         if (dragKey === null) return
 

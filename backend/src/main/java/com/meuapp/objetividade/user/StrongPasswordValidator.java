@@ -9,7 +9,7 @@ public class StrongPasswordValidator implements ConstraintValidator<StrongPasswo
 
     @Override
     public boolean isValid(String value, ConstraintValidatorContext ctx) {
-        if (value == null) return true; // @NotBlank cuida do vazio
+        if (value == null) return true;
 
         String error = null;
         if (value.length() < 8) error = "A senha deve ter no mínimo 8 caracteres";

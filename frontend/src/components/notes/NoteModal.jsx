@@ -83,7 +83,7 @@ export default function NoteModal({ open, note, onClose, onSaved, onDeleted }) {
     return (
         <div className={`task-overlay ${open ? 'is-open' : ''}`} onMouseDown={onClose}>
             <form className="task-modal note-modal" onSubmit={handleSubmit} onMouseDown={e => e.stopPropagation()}>
-                <h2>{editing ? 'Anotação' : 'Nova anotação'}</h2>
+                <h2>{editing ? 'Ideia' : 'Nova ideia'}</h2>
 
                 <div className="task-modal-body">
                     <div className="task-title-row">
@@ -156,8 +156,8 @@ export default function NoteModal({ open, note, onClose, onSaved, onDeleted }) {
                             type="button"
                             className={`task-btn is-danger ${confirmDelete ? 'is-confirming' : ''}`}
                             onClick={handleDelete}
-                            aria-label={confirmDelete ? 'Confirmar exclusão' : 'Excluir anotação'}
-                            title="Excluir anotação"
+                            aria-label={confirmDelete ? 'Confirmar exclusão' : 'Excluir ideia'}
+                            title="Excluir ideia"
                         >
                             <span className="task-trash" aria-hidden="true">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"

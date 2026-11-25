@@ -6,7 +6,6 @@ import EmojiPicker from '../EmojiPicker'
 import NoteModal from './NoteModal'
 import '../../styles/notes.css'
 
-// mesma ordem do backend: com data (mais próxima primeiro), depois sem data
 const sortNotes = list => [...list].sort((a, b) => {
     if (a.date && b.date) return a.date.localeCompare(b.date) || b.id - a.id
     if (a.date) return -1
@@ -57,9 +56,9 @@ export default function NotesPanel() {
         <section className="dashboard-panel">
             <div className="panel-header">
                 <div>
-                    <h2 className="panel-title">Minhas anotações</h2>
+                    <h2 className="panel-title">Minhas ideias</h2>
                     <p className="panel-description">
-                        {notes.length === 1 ? '1 anotação' : `${notes.length} anotações`}
+                        {notes.length === 1 ? '1 ideia' : `${notes.length} ideias`}
                     </p>
                 </div>
 
@@ -67,10 +66,10 @@ export default function NotesPanel() {
                     className="task-add"
                     type="button"
                     onClick={() => setModal({ open: true, note: null })}
-                    aria-label="Nova anotação"
+                    aria-label="Nova ideia"
                 >
                     <span className="task-add-icon">+</span>
-                    <span className="task-add-text"> Nova anotação</span>
+                    <span className="task-add-text"> Nova ideia</span>
                 </button>
             </div>
 
@@ -138,7 +137,7 @@ export default function NotesPanel() {
                 </ul>
             ) : (
                 loaded && !error && (
-                    <p className="note-empty">Nenhuma anotação ainda. Que tal começar com “+ Nova anotação”?</p>
+                    <p className="note-empty">Nenhuma ideia ainda. Que tal começar com “+ Nova ideia”?</p>
                 )
             )}
 

@@ -11,10 +11,6 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;
 
-/**
- * "Esqueci minha senha": envia um código por e-mail e troca a senha após a confirmação.
- * Para não revelar quais e-mails têm conta, o pedido sempre "dá certo" do ponto de vista de quem chama.
- */
 @Service
 public class PasswordResetService {
 
@@ -38,7 +34,6 @@ public class PasswordResetService {
         this.mailer = mailer;
     }
 
-    /** Envia o código se o e-mail tiver conta. Sem conta (ou pedido repetido rápido demais), não faz nada. */
     @Transactional
     public void request(String rawEmail) {
         String email = normalize(rawEmail);
@@ -59,11 +54,9 @@ public class PasswordResetService {
         r.setLastSentAt(now);
         r.setAttempts(0);
         resets.save(r);
-        // se o envio falhar, a exceção desfaz a transação
         mailer.sendPasswordResetCode(email, user.get().getName(), code, CODE_MINUTES);
     }
 
-    /** Confere o código e grava a nova senha. Devolve o e-mail da conta alterada. */
     @Transactional(noRollbackFor = ResponseStatusException.class)
     public String reset(String rawEmail, String rawCode, String newPassword) {
         String email = normalize(rawEmail);

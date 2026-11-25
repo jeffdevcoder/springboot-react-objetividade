@@ -1,4 +1,3 @@
-// Regras de senha forte. Manter igual a StrongPasswordValidator no backend.
 export const PASSWORD_RULES = [
     { label: 'Mínimo de 8 caracteres', test: p => p.length >= 8 },
     { label: 'Pelo menos um número', test: p => /\d/.test(p) },

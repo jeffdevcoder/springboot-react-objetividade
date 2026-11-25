@@ -37,7 +37,6 @@ export default function GoalsPanel() {
             playCheck()
             launchFireworks()
         }
-        // mostra na hora; o backend devolve a data oficial da conquista
         replace({ ...goal, achievedOn: achieved ? new Date().toLocaleDateString('sv') : null })
         try {
             replace(await api(`/goals/${goal.id}/achieved`, { method: 'PATCH', body: { achieved } }))

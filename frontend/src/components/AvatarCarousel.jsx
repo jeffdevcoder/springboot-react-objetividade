@@ -1,18 +1,14 @@
 import { useEffect, useLayoutEffect, useRef } from 'react'
 import { AVATARS, avatarSrc } from '../avatars'
 
-// Carrossel de fotos de perfil: a foto que fica no centro é a selecionada.
-// Desktop: setas, roda do mouse/trackpad ou arrastar com o mouse. Celular: arrastar com o dedo.
 export default function AvatarCarousel({ user, value, onChange }) {
     const items = [{ file: null, name: 'Sem foto' }, ...AVATARS]
     const index = Math.max(items.findIndex(i => i.file === (value ?? null)), 0)
     const trackRef = useRef(null)
     const drag = useRef(null)
     const settle = useRef(0)
-    // true enquanto a rolagem foi iniciada pelo código (seta/clique): não deve alterar a seleção
     const auto = useRef(false)
 
-    // distância (px) entre o centro da foto i e o centro visível da faixa
     function offsetOf(i) {
         const track = trackRef.current
         const el = track?.children[i]
@@ -42,10 +38,8 @@ export default function AvatarCarousel({ user, value, onChange }) {
         return best
     }
 
-    // ao abrir, centraliza a foto atual sem animação
     useLayoutEffect(() => {
         scrollTo(index, false)
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
 
     useEffect(() => () => clearTimeout(settle.current), [])
@@ -69,7 +63,6 @@ export default function AvatarCarousel({ user, value, onChange }) {
         scrollTo(i)
     }
 
-    // arrastar com o mouse (no toque o navegador já faz a rolagem nativa)
     function onPointerDown(e) {
         if (e.pointerType !== 'mouse' || e.button !== 0) return
         auto.current = false
@@ -94,7 +87,6 @@ export default function AvatarCarousel({ user, value, onChange }) {
             const i = nearest()
             onChange(items[i].file)
             scrollTo(i)
-            // impede que o clique ao soltar selecione outra foto
             const block = ev => { ev.stopPropagation(); ev.preventDefault() }
             trackRef.current.addEventListener('click', block, { capture: true, once: true })
             setTimeout(() => trackRef.current?.removeEventListener('click', block, { capture: true }), 0)

@@ -1,5 +1,3 @@
-// Emojis específicos de cada área. Os de finanças ficam em finance.js (EMOJI_GROUPS).
-
 export const STUDY_EMOJI_GROUPS = [
     { name: 'Exatas', icon: '🧮', emojis: ['🧮', '📐', '📏', '➗', '✖️', '➕', '🔢', '💯', '📊', '📈', '⚙️', '🔭', '🪐', '⚛️', '🧲', '💡'] },
     { name: 'Ciências', icon: '🧪', emojis: ['🧪', '🔬', '🧬', '🦠', '🧫', '⚗️', '🌱', '🫀', '🧠', '🦴', '🌋', '🌊', '🌎', '☀️', '🌡️', '🩺'] },

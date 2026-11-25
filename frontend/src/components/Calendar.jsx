@@ -29,7 +29,7 @@ export default function Calendar({ value, min, today, align = 'center', onSelect
         })
     }
 
-    const firstWeekday = new Date(view.year, view.month, 1).getDay() // 0 = domingo
+    const firstWeekday = new Date(view.year, view.month, 1).getDay()
     const daysInMonth = new Date(view.year, view.month + 1, 0).getDate()
     const cells = [
         ...Array(firstWeekday).fill(null),

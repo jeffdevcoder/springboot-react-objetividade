@@ -23,17 +23,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Stream;
 
-/**
- * Backup automático do banco H2 (checklist.mv.db).
- * <p>
- * Usa o comando {@code BACKUP TO} do H2, que gera um .zip consistente com o app rodando
- * (copiar o .mv.db na mão durante uma escrita pode dar um arquivo corrompido).
- * Roda todo dia no horário de {@code app.backup.cron} e também ao iniciar, se o último
- * backup tiver mais de um dia (cobre servidor desligado na hora agendada).
- * Mantém só os {@code app.backup.keep} mais recentes.
- * <p>
- * Restaurar: pare o app, descompacte o .zip dentro da pasta data/ (substituindo checklist.mv.db) e suba de novo.
- */
 @Component
 @EnableScheduling
 @ConditionalOnProperty(name = "app.backup.enabled", havingValue = "true", matchIfMissing = true)
@@ -70,7 +59,6 @@ public class DatabaseBackup {
             Path tmp = dir.resolve(name + ".tmp");
             Path target = dir.resolve(name + SUFFIX);
 
-            // grava num .tmp e só renomeia no fim: um backup interrompido nunca parece válido
             Files.deleteIfExists(tmp);
             jdbc.execute("BACKUP TO '" + tmp.toString().replace("'", "''") + "'");
             Files.move(tmp, target, StandardCopyOption.ATOMIC_MOVE);
@@ -78,12 +66,10 @@ public class DatabaseBackup {
             log.info("Backup do banco criado: {} ({} KB)", target, Files.size(target) / 1024);
             prune();
         } catch (Exception e) {
-            // nunca derruba o app: só registra para aparecer no log
             log.error("Falha no backup automático do banco em {}", dir, e);
         }
     }
 
-    /** Apaga os backups mais antigos, mantendo os {@code keep} mais recentes. */
     private void prune() throws IOException {
         List<Path> all = backups();
         for (int i = keep; i < all.size(); i++) {
@@ -100,7 +86,6 @@ public class DatabaseBackup {
         }
     }
 
-    /** Backups da pasta, do mais novo para o mais antigo (o nome tem data e hora). */
     private List<Path> backups() throws IOException {
         if (!Files.isDirectory(dir)) return List.of();
         try (Stream<Path> files = Files.list(dir)) {

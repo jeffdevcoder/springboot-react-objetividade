@@ -85,10 +85,6 @@ public class AuthController {
         return Map.of("token", token.getToken());
     }
 
-    /**
-     * 1ª etapa do cadastro: valida os dados e envia o código por e-mail.
-     * Com app.email-verification=false a conta já é criada aqui (pending = false).
-     */
     @PostMapping("/register")
     public ResponseEntity<Map<String, Boolean>> register(@Valid @RequestBody RegisterForm form) {
         boolean pending = registration.start(form);
@@ -96,7 +92,6 @@ public class AuthController {
                 .body(Map.of("pending", pending));
     }
 
-    /** 2ª etapa: confere o código e cria a conta. */
     @PostMapping("/register/verify")
     public ResponseEntity<Void> verify(@Valid @RequestBody VerifyRequest body) {
         registration.verify(body.email(), body.code());
@@ -109,14 +104,12 @@ public class AuthController {
         return ResponseEntity.noContent().build();
     }
 
-    /** Esqueci minha senha: envia o código (responde igual exista a conta ou não). */
     @PostMapping("/password/forgot")
     public ResponseEntity<Void> forgotPassword(@Valid @RequestBody ForgotRequest body) {
         passwordReset.request(body.email());
         return ResponseEntity.accepted().build();
     }
 
-    /** Confere o código, grava a nova senha e encerra as sessões abertas da conta. */
     @PostMapping("/password/reset")
     public ResponseEntity<Void> resetPassword(@Valid @RequestBody ResetRequest body, HttpServletRequest request) {
         String email = passwordReset.reset(body.email(), body.code(), body.newPassword());
@@ -160,7 +153,6 @@ public class AuthController {
                         + minutes + (minutes == 1 ? " minuto." : " minutos.")));
     }
 
-    /** Autentica a sessão trocando o ID dela, para evitar fixação de sessão. */
     private void startSession(Authentication auth, HttpServletRequest request, HttpServletResponse response) {
         if (request.getSession(false) != null) {
             request.changeSessionId();
@@ -171,7 +163,6 @@ public class AuthController {
         contextRepository.saveContext(context, request, response);
     }
 
-    /** Encerra as sessões do usuário em todos os dispositivos (menos a atual, se keepCurrent). */
     private void endSessions(String email, HttpServletRequest request, boolean keepCurrent) {
         HttpSession current = request.getSession(false);
         String currentId = current != null ? current.getId() : null;
@@ -211,7 +202,6 @@ public class AuthController {
         String oldEmail = auth.getName();
         User user = userService.changeEmail(oldEmail, body.email(), body.currentPassword());
 
-        // sessões em outros dispositivos ainda apontam para o e-mail antigo: encerra todas
         endSessions(oldEmail, request, true);
 
         Authentication fresh = new UsernamePasswordAuthenticationToken(
@@ -226,7 +216,6 @@ public class AuthController {
                                                Principal principal,
                                                HttpServletRequest request) {
         userService.changePassword(principal.getName(), body.currentPassword(), body.newPassword());
-        // desloga em todos os dispositivos (inclusive este): é preciso entrar de novo com a nova senha
         endSessions(principal.getName(), request, false);
         return ResponseEntity.noContent().build();
     }

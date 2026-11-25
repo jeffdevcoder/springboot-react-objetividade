@@ -49,7 +49,6 @@ public class Transaction {
     @Column(name = "paid")
     private Boolean paid;
 
-    /** Receita "Contas pagas" gerada quando este gasto foi marcado como pago. */
     @Column(name = "paid_income_id")
     private Long paidIncomeId;
 

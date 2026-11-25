@@ -85,7 +85,6 @@ export default function AccountModal({ open, onClose }) {
             method: 'PUT',
             body: { currentPassword: curPwd, newPassword: newPwd },
         })
-        // o backend encerrou todas as sessões: volta para o login
         onClose()
         updateUser(null)
         navigate('/login', { replace: true, state: { notice: 'Senha alterada. Entre novamente com a nova senha.' } })
@@ -187,8 +186,6 @@ export default function AccountModal({ open, onClose }) {
                         onSubmit={e => { e.preventDefault(); run('password', savePassword) }}
                     >
                         <span className="form-label">Senha</span>
-                        {/* diz ao gerenciador de senhas do navegador de qual conta é a senha,
-                            para ele não preencher com a senha de outra conta salva */}
                         <input
                             type="email"
                             name="username"

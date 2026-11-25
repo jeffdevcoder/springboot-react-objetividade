@@ -5,7 +5,6 @@ function parse(iso) {
     return new Date(y, m - 1, d)
 }
 
-// dias de hoje até a data (negativo = já passou)
 export function daysUntil(iso, today = new Date()) {
     const base = new Date(today.getFullYear(), today.getMonth(), today.getDate())
     return Math.round((parse(iso) - base) / DAY)

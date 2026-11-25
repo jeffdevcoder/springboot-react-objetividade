@@ -22,7 +22,6 @@ public class SecurityConfig {
     SecurityFilterChain securityFilterChain(HttpSecurity http,
                                             @Value("${server.servlet.session.cookie.secure:true}") boolean secureCookie)
             throws Exception {
-        // o cookie do CSRF precisa ser lido pelo JS (httpOnly=false), mas segue as mesmas regras do cookie de sessão
         CookieCsrfTokenRepository csrfRepository = CookieCsrfTokenRepository.withHttpOnlyFalse();
         csrfRepository.setCookieCustomizer(c -> c.secure(secureCookie).sameSite("Strict"));
 

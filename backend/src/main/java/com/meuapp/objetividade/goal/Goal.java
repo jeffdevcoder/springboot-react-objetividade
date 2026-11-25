@@ -28,11 +28,9 @@ public class Goal {
     @Column(length = 16)
     private String emoji;
 
-    // data até quando a meta deve ser conquistada
     @Column(nullable = false)
     private LocalDate deadline;
 
-    // dia em que foi marcada como conquistada (null = ainda em andamento)
     @Column(name = "achieved_on")
     private LocalDate achievedOn;
 

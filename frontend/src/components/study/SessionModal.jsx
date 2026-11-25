@@ -10,7 +10,6 @@ export default function SessionModal({ session, subject, onClose, onSaved }) {
     const [error, setError] = useState('')
     const [shownId, setShownId] = useState(null)
 
-    // cada vez que abre uma sessão diferente, volta ao modo leitura
     const id = session?.id ?? null
     if (id !== shownId) {
         setShownId(id)

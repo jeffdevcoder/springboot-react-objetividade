@@ -1,14 +1,11 @@
-/* metas: reaproveita a lista de tarefas (tasks.css) e o layout das anotações (notes.css) */
 .goal-list .task-check { align-self: flex-start; margin-top: 1.05rem; }
 
-/* prazo de meta em andamento ("Faltam X dias", "Venceu…") sempre em vermelho */
 .goal-item:not(.is-done) .note-count { color: var(--color-error); }
 .goal-item.is-done .note-count { color: #16a34a; }
 .goal-item.is-done .note-when { opacity: 0.8; }
 
 html[data-theme='dark'] .goal-item.is-done .note-count { color: #4ade80; }
 
-/* barra de progresso dos subtópicos (alinhada com o título, depois do check e do emoji) */
 .goal-list .task-progress,
 .goal-list .task-subs { padding-left: 4.8rem; }
 .goal-progress .goal-chevron { flex-shrink: 0; opacity: 0.5; transition: transform 0.2s ease; }
@@ -16,7 +13,6 @@ html[data-theme='dark'] .goal-item.is-done .note-count { color: #4ade80; }
 .goal-progress.is-complete .task-bar-fill { background: #16a34a; }
 html[data-theme='dark'] .goal-progress.is-complete .task-bar-fill { background: #4ade80; }
 
-/* no pop-up, muitos subtópicos rolam dentro da própria lista */
 .goal-steps-edit {
     display: flex;
     flex-direction: column;
@@ -25,7 +21,6 @@ html[data-theme='dark'] .goal-progress.is-complete .task-bar-fill { background: 
     overflow-y: auto;
 }
 
-/* fogos ao conquistar uma meta (fireworks.js) */
 .fireworks-canvas {
     position: fixed;
     inset: 0;

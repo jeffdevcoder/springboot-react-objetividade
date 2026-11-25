@@ -17,7 +17,6 @@ import java.util.Map;
 @Service
 public class GoalService {
 
-    // em andamento primeiro (prazo mais próximo no topo), depois as conquistadas (mais recentes primeiro)
     private static final Comparator<Goal> ORDER = Comparator
             .comparing((Goal g) -> g.getAchievedOn() != null)
             .thenComparing(g -> g.getAchievedOn() == null ? g.getDeadline() : LocalDate.MAX)
@@ -42,7 +41,7 @@ public class GoalService {
         Goal g = new Goal();
         g.setUser(user(email));
         apply(g, req);
-        goals.saveAndFlush(g); // gera os ids dos subtópicos antes de devolver
+        goals.saveAndFlush(g);
         return GoalView.of(g);
     }
 
@@ -90,7 +89,6 @@ public class GoalService {
         syncSteps(g, req.steps() == null ? List.of() : req.steps());
     }
 
-    // atualiza os subtópicos pela lista recebida: mantém os que têm id, cria os novos e remove os que sumiram
     private void syncSteps(Goal g, List<GoalStepInput> inputs) {
         Map<Long, GoalStep> existing = new HashMap<>();
         for (GoalStep s : g.getSteps()) existing.put(s.getId(), s);

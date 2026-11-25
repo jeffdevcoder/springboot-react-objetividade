@@ -35,7 +35,6 @@ const rowKey = t => (t.id !== null ? `t${t.id}` : `r${t.recurringId}`)
 
 const segKey = t => `${t.type}-${t.category ? t.category.id : 'none'}`
 
-// filtros fixos da lista; as categorias entram depois como `c<id>`
 const BASE_FILTERS = [
     { key: 'all', label: 'Lançamentos', test: () => true },
     { key: 'expense', label: 'Gastos', tone: 'expense', test: t => t.type === 'EXPENSE' },
@@ -70,17 +69,16 @@ export default function FinancePanel() {
         try {
             if (key === 'all') localStorage.removeItem('financeFilter')
             else localStorage.setItem('financeFilter', key)
-        } catch { /* sem armazenamento */ }
+        } catch {}
     }
 
     const loadCategories = useCallback(() => {
         api('/finance/categories')
             .then(list => {
                 setCategories(list)
-                // categoria escolhida foi excluída: volta para "Lançamentos"
                 setFilter(f => {
                     if (!f.startsWith('c') || list.some(c => `c${c.id}` === f)) return f
-                    try { localStorage.removeItem('financeFilter') } catch { /* sem armazenamento */ }
+                    try { localStorage.removeItem('financeFilter') } catch {}
                     return 'all'
                 })
             })

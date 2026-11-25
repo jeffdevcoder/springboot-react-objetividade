@@ -16,13 +16,10 @@ function loadRecent() {
 
 function saveRecent(emoji) {
     const next = [emoji, ...loadRecent().filter(e => e !== emoji)].slice(0, RECENT_MAX)
-    try { localStorage.setItem(RECENT_KEY, JSON.stringify(next)) } catch { /* sem armazenamento */ }
+    try { localStorage.setItem(RECENT_KEY, JSON.stringify(next)) } catch {}
 }
 
-// Sem onSave: escolher um emoji já chama onSelect.
-// Com onSave: o emoji fica pendente até clicar em "Salvar".
 export default function EmojiPicker({ groups: baseGroups, value, onSelect, onSave, onClose }) {
-    // Lidos só na abertura, para a aba não se reordenar enquanto o picker está aberto.
     const [groups] = useState(() => {
         const recent = loadRecent()
         return recent.length ? [{ name: 'Recentes', icon: '🕘', emojis: recent }, ...baseGroups] : baseGroups

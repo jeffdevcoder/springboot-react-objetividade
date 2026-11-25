@@ -1,4 +1,3 @@
-
 package com.meuapp.objetividade.config;
 
 import org.springframework.http.ResponseEntity;

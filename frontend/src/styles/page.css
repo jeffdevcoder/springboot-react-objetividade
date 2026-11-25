@@ -1,11 +1,3 @@
-/*
- * Entrada das páginas: ao carregar/recarregar (ou trocar de rota), os blocos
- * principais surgem em cascata — sobem um pouco e saem de um leve desfoque.
- * O fundo da página aparece na hora, então não há "piscada" branca.
- * Só os blocos animam (nunca o <main>), para não afetar modais com position: fixed.
- * A classe .page-enter sai após a entrada (App.jsx), então o resto da navegação não é afetado.
- */
-
 @keyframes page-rise {
     from {
         opacity: 0;
@@ -29,19 +21,16 @@
     --page-step: 80ms;
 }
 
-/* blocos que entram em cascata */
 .page-enter .auth-page > :not(.theme-toggle),
 .page-enter .dashboard > .dashboard-header,
 .page-enter .dashboard-content > * {
     animation: page-rise 0.7s var(--page-ease) both;
 }
 
-/* botão de tema flutuante: só aparece suavemente */
 .page-enter .auth-page > .theme-toggle {
     animation: page-fade 0.6s ease 0.2s both;
 }
 
-/* ordem da cascata */
 .page-enter .auth-page > :nth-child(2),
 .page-enter .dashboard > .dashboard-header { animation-delay: 0ms; }
 
@@ -56,13 +45,7 @@
 
 .page-enter .dashboard-content > :nth-child(n + 4) { animation-delay: calc(var(--page-step) * 4); }
 
-/*
- * Troca de aba no painel (Tarefas, Finanças, Estudos...): o conteúdo novo entra com a
- * mesma animação da página. Usa o mesmo @keyframes de propósito: se a troca acontecer
- * durante a entrada da página, a animação não reinicia quando .page-enter sai.
- */
 .section-view {
-    /* "backwards": ao terminar não deixa transform/filter, que quebrariam os modais (position: fixed) */
     animation: page-rise 0.5s cubic-bezier(0.22, 1, 0.36, 1) backwards;
 }
 .section-swap {
@@ -80,7 +63,6 @@
     }
 }
 
-/* input minimalista: mesma cor dos inputs normais, sem borda — só um contorno bem suave */
 html .form-input.input-soft {
     min-height: 40px;
     border-color: transparent;

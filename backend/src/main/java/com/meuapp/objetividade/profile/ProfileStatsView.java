@@ -5,10 +5,6 @@ import com.meuapp.objetividade.task.TaskStatsView;
 import java.time.LocalDate;
 import java.util.List;
 
-/**
- * Estatísticas da página de perfil para a semana ou o mês atual.
- * Cada seção é null quando o usuário nunca usou aquela parte do app.
- */
 public record ProfileStatsView(
         String period,
         LocalDate from,
@@ -20,7 +16,6 @@ public record ProfileStatsView(
         Notes notes,
         Goals goals) {
 
-    /** Totais do período, como na aba Finanças. Contas = gastos do período (pagos ou não). */
     public record Finance(long incomeCents, long expenseCents, long balanceCents, int count,
                           int bills, int billsPaid, List<Category> expenses) {}
 
@@ -32,7 +27,6 @@ public record ProfileStatsView(
 
     public record Subject(String name, String emoji, String color, long seconds) {}
 
-    /** upcoming = próximas anotações com data (a partir de hoje). */
     public record Notes(int total, int created, List<NoteItem> upcoming) {}
 
     public record NoteItem(Long id, String title, String emoji, LocalDate date) {}

@@ -26,7 +26,6 @@ export default function Register() {
     const [showConfirmPassword, setShowConfirmPassword] = useState(false)
     const [confirmPassword, setConfirmPassword] = useState('')
 
-    // etapa 2: confirmação do código enviado por e-mail
     const [step, setStep] = useState('form')
     const [code, setCode] = useState('')
     const [cooldown, setCooldown] = useState(0)
@@ -79,7 +78,6 @@ export default function Register() {
                 body: form
             })
 
-            // confirmação por e-mail desligada no backend: a conta já foi criada
             if (res && res.pending === false) {
                 await enter()
                 return
